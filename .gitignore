@@ -1,0 +1,12 @@
+# Velumia app — gitignore
+
+/target/
+/node_modules/
+/dist/
+/src-tauri/target/
+.env
+.env.*
+!.env.example
+.DS_Store
+.ai/velumia-sprints/LIE-*/
+!.ai/velumia-sprints/_templates/
