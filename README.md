@@ -22,6 +22,8 @@ Invoke skill `.cursor/skills/velumia-sprint-start/SKILL.md` in Cursor.
 1. Basic Memory `projects/velumia/` (Vision, Dev Guide, V1 Features, Team playbook)
 2. Linear issue for current sprint
 3. `velumia-pm/bdd/` for Gherkin (submodule)
+4. Sub-agents: `.cursor/agents/` (Scrum + dev disciplines)
+5. Sprint PRDs: ChatPRD Velumia project → `.ai/velumia-sprints/LIE-NNN/sprint-prd.md`
 
 ## Remote
 

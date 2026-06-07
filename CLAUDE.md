@@ -6,7 +6,8 @@ Application source. Specs live in **velumia-pm** submodule and Basic Memory `pro
 
 - [AGENTS.md](./AGENTS.md) if present
 - Basic Memory: Velumia — Dev Guide, Team playbook
-- Skills: `.cursor/skills/velumia-sprint-start/`
+- Skills: `.cursor/skills/velumia-sprint-start/`, `.cursor/skills/velumia-planning-chatprd-sync/`
+- Sub-agents: `.cursor/agents/` (velumia-scrum-sm, velumia-scrum-po, velumia-dev-*)
 
 ## PM repo
 

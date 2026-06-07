@@ -18,3 +18,8 @@ sibling_repos:
 # Basic Memory — dev repo
 
 Read BM notes under `projects/velumia/` before opening `velumia-pm/` submodule.
+
+| Note | Updated by |
+|------|------------|
+| Velumia — Sprint PRD — LIE-NNN | velumia-planning-chatprd-sync (per sprint) |
+| Velumia — Artifacts | sprint PRD uuid index |

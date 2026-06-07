@@ -16,6 +16,13 @@
 
 ## Stakeholder notes
 
+## ChatPRD sprint PRD
+
+**Document UUID:**  
+**ChatPRD URL:**  
+**Published:** yes / no  
+**Synced locally:** yes / no  
+
 ## Story points (issue only)
 
 **Estimate:**  
