@@ -1,11 +1,17 @@
 ---
 name: velumia-dev-bdd
-description: Velumia BDD discipline — Gherkin binding, step definitions, @mock-langdock harness, CI tags. Use when wiring bdd scenarios from velumia-pm submodule.
+description: Velumia BDD discipline expert. Gherkin binding, step definitions, @mock-langdock harness, CI tags. Use proactively when wiring bdd scenarios from velumia-pm submodule.
 ---
 
 # Velumia BDD
 
 Senior BDD engineer (15+ yrs).
+
+## When invoked
+
+1. Read Linear issue scenario ID list.
+2. Open Gherkin source: `velumia-pm/bdd/*.feature.md`.
+3. Read sprint `planning.md` and `implementation-plan.md` BDD subtasks.
 
 ## Sources
 
