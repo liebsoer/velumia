@@ -9,9 +9,13 @@ Senior security architect (15+ yrs). **You review; you do not implement features
 
 ## When invoked
 
-1. Read sprint `planning.md`, `sprint-prd.md`, and `implementation-plan.md`.
+1. Read sprint `planning.md`, ChatPRD **Sprint PRD** (`sprint-prd.md` mirror), and **Implementation Spec** (`implementation-plan.md` mirror).
 2. Read `velumia-pm/prd/roles-rights-architecture.md` for authz scope.
 3. Open `security-review.md` in sprint folder.
+
+## Planning (refinement)
+
+- Review PO's ChatPRD **Sprint PRD** during refinement; comment in `refinement.md` and `security-review.md` § Planning.
 
 ## Per sprint
 

@@ -9,17 +9,40 @@ description: Start a Velumia sprint for one Linear Feature issue. Use when the s
 
 `/sprint-start LIE-NNN` — one Linear issue = one sprint. **First sprint:** `LIE-54` (scaffold).
 
-## Workflow
+## ChatPRD ceremony (every sprint)
 
-1. Read **Basic Memory** first: Velumia — Status, V1 Features, Dev Guide, Team playbook.
-2. Fetch Linear issue `LIE-NNN` (Velumia project, V1 Launch).
-3. Use the **velumia-scrum-sm** subagent to create `.ai/velumia-sprints/LIE-NNN/` from `_templates/`.
-4. Use the **velumia-scrum-po** subagent to run **Planning ceremony** (refinement, ChatPRD sprint PRD, story points).
-5. Do **not** start Implementation until Planning gate passes:
-   - ChatPRD sprint PRD published and synced
-   - ≤5 rounds or stakeholder cleared escalations
-   - `implementation-plan.md` complete
-   - Story points recorded in Linear
+ChatPRD is the **authoring surface**. Local files under `.ai/velumia-sprints/LIE-NNN/` are **mirrors** synced from ChatPRD.
+
+Each sprint produces **two ChatPRD documents**, both **linked on the Linear issue**:
+
+| # | Document | Owner | When |
+|---|----------|-------|------|
+| 1 | **Sprint PRD** | PO | **Before** refinement — input for PO + dev discussion |
+| 2 | **Implementation Spec** | Devs (SM coordinates) | **After** PO + devs agree on updated sprint PRD |
+
+**Velumia project:** `projectId: asst_WVuIAcqzH1O6ERmhWHE91UGL`
+
+### Flow
+
+1. **SM** — create `.ai/velumia-sprints/LIE-NNN/` from `_templates/`
+2. **PO** — `create_document` sprint PRD in ChatPRD → link on Linear → sync down (`velumia-planning-chatprd-sync`, type `sprint-prd`)
+3. **PO + dev subagents** — refine **using sprint PRD as input**; log in `refinement.md` (max 5 rounds/topic)
+4. **PO** — merge refinement into sprint PRD → `update_document` in ChatPRD → sync down
+5. **PO + devs agree** on sprint PRD; PO records story points on Linear issue
+6. **Devs** — `create_document` Implementation Spec in ChatPRD (template **ChatPRD: Feature Implementation Spec**) with sub-agent ownership + handoffs → link on Linear → sync down (type `implementation-spec`)
+7. **Planning gate** passes → SM moves Linear to **In Progress** → Implementation
+
+Do **not** start Implementation until Planning gate passes.
+
+## Planning gate checklist
+
+- [ ] Sprint PRD created in ChatPRD **before** refinement; updated after refinement; synced to `sprint-prd.md`
+- [ ] Implementation Spec created in ChatPRD after PRD agreement; synced to `implementation-plan.md`
+- [ ] Both ChatPRD documents **linked on the Linear issue** (`save_issue` → `links`)
+- [ ] Implementation Spec lists **sub-agent ownership** and **handoffs** per subtask
+- [ ] ≤5 refinement rounds or stakeholder cleared escalations
+- [ ] Story points recorded on Linear issue (not subtasks)
+- [ ] `security-review.md` Planning section complete
 
 ## Sub-agents (`.cursor/agents/`)
 
@@ -37,7 +60,7 @@ description: Start a Velumia sprint for one Linear Feature issue. Use when the s
 
 ## Skills
 
-- **velumia-planning-chatprd-sync** — after ChatPRD `create_document`, mirror to local + BM
+- **velumia-planning-chatprd-sync** — sync sprint PRD or Implementation Spec from ChatPRD to local + velumia-pm mirror + BM
 
 ## Inputs
 
@@ -47,4 +70,8 @@ description: Start a Velumia sprint for one Linear Feature issue. Use when the s
 
 ## Stop
 
-Planning complete with ChatPRD sprint PRD synced, `implementation-plan.md`, and issue story points recorded in Linear.
+Planning complete: agreed sprint PRD + Implementation Spec in ChatPRD (both linked on Linear), local mirrors synced, story points on issue.
+
+## Reference
+
+Canonical ceremony: [`.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`](../../plans/delivery/velumia-sprint-ceremony.plan.md)

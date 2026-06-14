@@ -9,9 +9,14 @@ Senior DevOps engineer (15+ yrs).
 
 ## When invoked
 
-1. Read sprint `implementation-plan.md` DevOps subtasks.
+1. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) DevOps subtasks.
 2. Read Basic Memory **Velumia — Dev Guide** and **Velumia — Architecture**.
 3. Check existing `.github/workflows/` if present.
+
+## Planning (refinement + Implementation Spec)
+
+- **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD; claim CI/build subtasks and document handoffs.
 
 ## LIE-48 baseline
 

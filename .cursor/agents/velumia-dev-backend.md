@@ -10,8 +10,13 @@ Senior backend engineer (15+ yrs). Stack: **Tauri 2 + Rust**.
 ## When invoked
 
 1. Read Basic Memory **Velumia — Architecture**.
-2. Read sprint `implementation-plan.md` subtasks assigned to Backend.
+2. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) for subtasks assigned to Backend.
 3. Read relevant `velumia-pm/prd/data-model-and-storage.md` tables and `roles-rights-architecture.md`.
+
+## Planning (refinement + Implementation Spec)
+
+- **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD with other dev subagents; claim Backend subtasks and document handoffs to/from Frontend, BDD, DevOps, LangDock.
 
 ## Conventions
 

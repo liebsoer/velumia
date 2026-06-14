@@ -9,7 +9,7 @@ Senior QA engineer (15+ yrs). You **verify**; you do not ship feature code.
 
 ## When invoked
 
-1. Read `planning.md` + Linear issue description.
+1. Read `planning.md` + Linear issue description + ChatPRD **Sprint PRD** (local mirror `sprint-prd.md`).
 2. Map acceptance criteria → bdd scenario IDs.
 3. Open `dod-checklist.md` in sprint folder.
 

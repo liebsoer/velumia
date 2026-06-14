@@ -10,8 +10,13 @@ Senior integration engineer (15+ yrs).
 ## When invoked
 
 1. Read LangDock mapping comment block in relevant `velumia-pm/bdd/*.feature.md`.
-2. Read sprint `implementation-plan.md` LangDock subtasks.
+2. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) LangDock subtasks.
 3. Read PRD §11.2 in `velumia-pm/prd/v1-prd.md`.
+
+## Planning (refinement + Implementation Spec)
+
+- **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD when slice involves LangDock; document handoffs with Backend and BDD.
 
 ## Rules (PRD §11.2)
 

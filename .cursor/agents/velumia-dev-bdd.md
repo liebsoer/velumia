@@ -11,7 +11,12 @@ Senior BDD engineer (15+ yrs).
 
 1. Read Linear issue scenario ID list.
 2. Open Gherkin source: `velumia-pm/bdd/*.feature.md`.
-3. Read sprint `planning.md` and `implementation-plan.md` BDD subtasks.
+3. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) for BDD subtasks.
+
+## Planning (refinement + Implementation Spec)
+
+- **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD; claim BDD/harness subtasks and document handoffs (e.g. `@mock-langdock` stub before slice scenarios).
 
 ## Sources
 
