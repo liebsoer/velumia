@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck and build frontend
+        run: npm run build
+
+      - name: Build Rust (Tauri backend)
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+  bdd:
+    runs-on: macos-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run BDD (@mock-langdock)
+        run: npm run test:bdd
+        env:
+          BDD_TAGS: "@mock-langdock"
