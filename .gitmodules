@@ -1,0 +1,3 @@
+[submodule "velumia-pm"]
+	path = velumia-pm
+	url = git@github.com:liebsoer/velumia-pm.git
