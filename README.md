@@ -2,6 +2,29 @@
 
 Local-first desktop app (Tauri 2 + Vue 3) for prompts, agents, and skills with LangDock BYOK.
 
+## Prerequisites
+
+- macOS 12+ (V1 dogfood)
+- [Node.js](https://nodejs.org/) 20+
+- [Rust](https://rustup.rs/)
+- Tauri system dependencies: https://tauri.app/start/prerequisites/
+
+## Development
+
+```bash
+git submodule update --init --recursive
+npm install
+npm run tauri dev
+```
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run tauri dev` | Run desktop app in dev mode |
+| `npm run build` | Build Vue frontend |
+| `npm run test:bdd` | Run BDD scenarios (`@mock-langdock`) |
+
 ## Repos
 
 | Repo | Role |
@@ -12,23 +35,23 @@ Local-first desktop app (Tauri 2 + Vue 3) for prompts, agents, and skills with L
 ## Start a sprint
 
 ```text
-/sprint-start LIE-54
+/sprint-start LIE-NNN
 ```
 
-Invoke skill `.cursor/skills/velumia-sprint-start/SKILL.md` in Cursor.
+See [`.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`](.cursor/plans/delivery/velumia-sprint-ceremony.plan.md).
 
 ## Context for AI
 
-1. Basic Memory `projects/velumia/` (Vision, Dev Guide, V1 Features, Team playbook)
-2. Linear issue for current sprint
-3. `velumia-pm/bdd/` for Gherkin (submodule)
-4. Sub-agents: `.cursor/agents/` (Scrum + dev disciplines)
-5. Sprint PRDs: ChatPRD Velumia project → `.ai/velumia-sprints/LIE-NNN/sprint-prd.md`
-
-## Remote
-
-GitHub: `liebsoer/velumia` (add when created)
+1. Basic Memory `projects/velumia/`
+2. Linear issue (Sprint PRD + Implementation Spec linked)
+3. `velumia-pm/bdd/` for Gherkin
+4. Sub-agents: `.cursor/agents/`
+5. IPC contract: [`docs/ipc.md`](docs/ipc.md)
 
 ## Stack
 
 Tauri 2 · Vue 3 · SQLite · macOS dogfood (V1)
+
+## Linear
+
+Current sprint: [LIE-54](https://linear.app/liebich-dev/issue/LIE-54) — platform scaffold
