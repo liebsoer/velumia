@@ -1,16 +1,14 @@
 # Submodule setup
 
-After `liebsoer/velumia` and PM repo remotes exist:
-
 ```bash
 cd ~/workspace/private/velumia
-git submodule add git@github.com:liebich-dev/velumia-pm.git velumia-pm
+git submodule update --init --recursive
 ```
 
-Until then, use sibling checkout: `../velumia-pm` (symlink optional).
+Fresh clone:
 
 ```bash
-ln -s ../velumia-pm velumia-pm
+git clone --recurse-submodules git@github.com:liebsoer/velumia.git
 ```
 
-BDD path for local dev: `velumia-pm/bdd/` or `../velumia-pm/bdd/`.
+BDD path: `velumia-pm/bdd/`.
