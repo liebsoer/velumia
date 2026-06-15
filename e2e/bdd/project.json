@@ -1,0 +1,16 @@
+{
+  "name": "bdd",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "e2e/bdd",
+  "tags": ["scope:e2e", "type:e2e"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --import tsx e2e/bdd/run.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

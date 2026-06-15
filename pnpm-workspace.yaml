@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - e2e/*
+  - libs/**
+
+onlyBuiltDependencies:
+  - esbuild
+  - nx

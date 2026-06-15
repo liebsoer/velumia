@@ -1,0 +1,31 @@
+{
+  "name": "desktop",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/desktop/src",
+  "tags": ["scope:desktop", "type:app"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec tauri dev",
+        "cwd": "apps/desktop"
+      }
+    },
+    "bundle": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["ui:build"],
+      "options": {
+        "command": "pnpm exec tauri build",
+        "cwd": "apps/desktop"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo test",
+        "cwd": "apps/desktop"
+      }
+    }
+  }
+}

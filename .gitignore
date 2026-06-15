@@ -9,9 +9,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Rust / Tauri
+/target/
+apps/desktop/target/
+
+# Nx
+.nx/
+
+# pnpm
 node_modules
 dist
 dist-ssr
+apps/ui/dist
 *.local
 
 # Editor directories and files
@@ -27,7 +36,7 @@ dist-ssr
 
 # Rust / Tauri
 /target/
-/src-tauri/target/
+apps/desktop/target/
 
 # Env
 .env

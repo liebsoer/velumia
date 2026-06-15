@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.liebsoer.velumia",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "pnpm nx run ui:dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
+    "beforeBuildCommand": "pnpm nx run ui:build",
+    "frontendDist": "../ui/dist"
   },
   "app": {
     "windows": [

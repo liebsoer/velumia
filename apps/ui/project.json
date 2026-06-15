@@ -1,0 +1,35 @@
+{
+  "name": "ui",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/ui/src",
+  "tags": ["scope:ui", "type:app"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vue-tsc --noEmit -p apps/ui/tsconfig.json",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "vue-tsc --noEmit -p apps/ui/tsconfig.json",
+          "vite build --config apps/ui/vite.config.ts"
+        ],
+        "parallel": false,
+        "cwd": "{workspaceRoot}"
+      },
+      "outputs": ["{workspaceRoot}/apps/ui/dist"]
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite --config apps/ui/vite.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}
