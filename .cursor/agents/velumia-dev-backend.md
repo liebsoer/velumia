@@ -20,7 +20,7 @@ Senior backend engineer (15+ yrs). Stack: **Tauri 2 + Rust**.
 
 ## Conventions
 
-- SQLite via Rust; migrations in `src-tauri/migrations/`
+- SQLite via Rust; migrations in `apps/desktop/migrations/`
 - IPC: documented commands; Vue calls via `@tauri-apps/api`
 - `authorize(principal, permission, resource)` before protected mutations
 - Keychain: OS secure storage for API keys (never SQLite for secrets)

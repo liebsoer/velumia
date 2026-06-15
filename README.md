@@ -2,10 +2,13 @@
 
 Local-first desktop app (Tauri 2 + Vue 3) for prompts, agents, and skills with LangDock BYOK.
 
+Nx + pnpm monorepo: `apps/ui` (Vue), `apps/desktop` (Tauri/Rust), `e2e/bdd` (Cucumber).
+
 ## Prerequisites
 
 - macOS 12+ (V1 dogfood)
-- [Node.js](https://nodejs.org/) 20+
+- [Node.js](https://nodejs.org/) 22+
+- [pnpm](https://pnpm.io/) 10+
 - [Rust](https://rustup.rs/)
 - Tauri system dependencies: https://tauri.app/start/prerequisites/
 
@@ -13,17 +16,30 @@ Local-first desktop app (Tauri 2 + Vue 3) for prompts, agents, and skills with L
 
 ```bash
 git submodule update --init --recursive
-npm install
-npm run tauri dev
+pnpm install
+pnpm nx run desktop:dev
 ```
 
-## Scripts
+## Nx targets
 
 | Command | Description |
 |---------|-------------|
-| `npm run tauri dev` | Run desktop app in dev mode |
-| `npm run build` | Build Vue frontend |
-| `npm run test:bdd` | Run BDD scenarios (`@mock-langdock`) |
+| `pnpm nx run ui:dev` | Vue dev server (port 1420) |
+| `pnpm nx run desktop:dev` | Tauri desktop app in dev mode |
+| `pnpm nx run ui:build` | Build Vue frontend |
+| `pnpm nx run desktop:test` | Rust unit + integration tests |
+| `pnpm nx run desktop:bundle` | Full Tauri release bundle |
+| `pnpm nx run bdd:test` | BDD scenarios (`BDD_TAGS=@mock-langdock`) |
+
+## Layout
+
+```text
+apps/ui/          Vue 3 + Vite
+apps/desktop/     Tauri 2 + Rust
+e2e/bdd/          Cucumber harness
+libs/             Future shared libs (libs/ui/*, libs/desktop/*)
+velumia-pm/       Specs submodule (ignored by Nx)
+```
 
 ## Repos
 
@@ -50,8 +66,8 @@ See [`.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`](.cursor/plans/del
 
 ## Stack
 
-Tauri 2 · Vue 3 · SQLite · macOS dogfood (V1)
+Tauri 2 · Vue 3 · SQLite · Nx · pnpm · macOS dogfood (V1)
 
 ## Linear
 
-Current sprint: [LIE-54](https://linear.app/liebich-dev/issue/LIE-54) — platform scaffold
+Current sprint: [LIE-76](https://linear.app/liebich-dev/issue/LIE-76) — Nx monorepo migration

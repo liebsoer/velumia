@@ -21,7 +21,7 @@ Senior BDD engineer (15+ yrs).
 ## Sources
 
 - Gherkin: `velumia-pm/bdd/*.feature.md` (git submodule)
-- Step defs: `tests/bdd/`
+- Step defs: `e2e/bdd/`
 - Tags: `@sliceN`, `@mock-langdock`, domain tags
 
 ## Conventions
