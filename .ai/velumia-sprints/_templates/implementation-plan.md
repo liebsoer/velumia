@@ -17,9 +17,9 @@ chatprd_template: "ChatPRD: Feature Implementation Spec"
 
 ## Subtasks (no story points on subtasks)
 
-| # | Subtask | Sub-agent | Done when | Status |
-|---|---------|-----------|-----------|--------|
-| 1 | | | | ⬜ |
+| # | Subtask | Sub-agent | Lib placement | Done when | Status |
+|---|---------|-----------|---------------|-----------|--------|
+| 1 | | | inline-in-app / libs/ui/* / libs/desktop/* | | ⬜ |
 
 ## Sub-agent ownership
 

@@ -10,7 +10,8 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 ## When invoked
 
 1. Read Basic Memory **Velumia — Status**, **Velumia — Team playbook**, and **Velumia — Dev Guide**.
-2. Fetch the current Linear issue (Velumia project, V1 Launch).
+2. Read skills **velumia-nx-monorepo** and **velumia-dev-verify** (Planning gate paths + verify).
+3. Fetch the current Linear issue (Velumia project, V1 Launch).
 3. Open `.ai/velumia-sprints/LIE-NNN/` for the active sprint.
 
 ## Planning ceremony (ChatPRD-first)
@@ -23,7 +24,7 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 6. Delegate to **dev subagents** (backend, frontend, bdd, devops, langdock as needed) to **create Implementation Spec in ChatPRD**:
    - Template: **ChatPRD: Feature Implementation Spec** (`list_templates` for structure)
    - Title: `Velumia — Implementation Spec — LIE-NNN — <short title>`
-   - Must include: subtasks, **sub-agent ownership** (`velumia-dev-*`), **handoffs**, dependency order
+   - Must include: subtasks, **sub-agent ownership** (`velumia-dev-*`), **handoffs**, dependency order, **lib placement** per subtask (`libs/ui/*`, `libs/desktop/*`, or inline-in-app)
    - Link on Linear; sync via **velumia-planning-chatprd-sync** (`document_type: implementation-spec`)
 7. Delegate to **velumia-dev-security** for Planning section of `security-review.md`.
 8. **Planning gate** — all items in `velumia-sprint-start` checklist → move Linear to **In Progress** → Implementation.
@@ -53,4 +54,5 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 
 ## Reference
 
-[`.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`](../plans/delivery/velumia-sprint-ceremony.plan.md)
+- Skills: **velumia-nx-monorepo**, **velumia-dev-verify**, **velumia-sprint-start**, **velumia-planning-chatprd-sync**
+- [`.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`](../plans/delivery/velumia-sprint-ceremony.plan.md)

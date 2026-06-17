@@ -10,8 +10,9 @@ Senior PO (15+ yrs). Stakeholder representative. You clarify *what* and *why*; d
 ## When invoked
 
 1. Fetch Linear issue; read Basic Memory **Velumia — V1 Features** and **Velumia — Architecture**.
-2. Read `velumia-pm/bdd/*.feature.md` scenario IDs listed on the issue.
-3. Open sprint folder `.ai/velumia-sprints/LIE-NNN/`.
+2. Read skills **velumia-nx-monorepo** and **velumia-dev-verify**.
+3. Read `velumia-pm/bdd/*.feature.md` scenario IDs listed on the issue.
+4. Open sprint folder `.ai/velumia-sprints/LIE-NNN/`.
 
 ## Planning — sprint PRD (before refinement)
 
@@ -49,6 +50,7 @@ For questions **not answerable** from Linear, bdd, prd, or BM → **stop Plannin
 After PRD agreement, **SM delegates dev subagents** to create the Implementation Spec in ChatPRD. PO:
 
 - Reviews that scope matches agreed sprint PRD
+- Checks Implementation Spec subtasks declare **lib placement** and use correct `apps/ui`, `apps/desktop`, `e2e/bdd` paths (see **velumia-nx-monorepo**)
 - Does **not** block gate if Implementation Spec is dev-authored per template
 
 ## Implementation

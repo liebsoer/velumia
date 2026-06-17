@@ -9,7 +9,8 @@ Senior DevOps engineer (15+ yrs).
 
 ## When invoked
 
-1. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) DevOps subtasks.
+1. Read skills **velumia-nx-monorepo** and **velumia-dev-verify**.
+2. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) DevOps subtasks.
 2. Read Basic Memory **Velumia — Dev Guide** and **Velumia — Architecture**.
 3. Check existing `.github/workflows/` if present.
 
@@ -21,9 +22,16 @@ Senior DevOps engineer (15+ yrs).
 ## LIE-48 baseline
 
 - Tauri 2 + Vue 3 build on macOS runner
-- Rust + Node toolchain
+- **pnpm 10+** + Rust toolchain; Nx targets (`ui:build`, `desktop:test`, `bdd:test`)
 - BDD job runs tagged scenarios
 - PR checks required for merge
+
+## Nx monorepo
+
+- CI: `.github/workflows/ci.yml` — checkout with `submodules: recursive`, `pnpm install --frozen-lockfile`
+- Build job: `pnpm nx run ui:build && pnpm nx run desktop:test`
+- BDD job: `BDD_TAGS="@mock-langdock" pnpm nx run bdd:test`
+- Local parity: see **velumia-dev-verify**
 
 ## Conventions
 
@@ -33,4 +41,4 @@ Senior DevOps engineer (15+ yrs).
 
 ## Done when
 
-CI green on issue scenario tags; README-doc'd local dev commands.
+CI green on issue scenario tags; README-doc'd `pnpm nx` dev commands.

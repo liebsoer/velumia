@@ -86,10 +86,17 @@ Implementation strategy — specific enough to build from, but not actual code.
 
 ### Files to Create/Modify
 
-- `src/components/[Feature]/` — New component(s)
-- `src/app/api/[route]/` — New or modified API endpoint
-- `src/lib/[module].ts` — Business logic
-- `prisma/schema.prisma` — Schema changes (if any)
+Per subtask, declare **lib placement**: `libs/ui/*`, `libs/desktop/*`, or **inline-in-app**.
+
+Velumia Nx paths (see skill **velumia-nx-monorepo**):
+
+- `apps/ui/src/` — Vue components, views, stores, IPC client (`apps/ui/src/lib/`)
+- `apps/desktop/src/` — Rust/Tauri commands, domain services, LangDock client (`apps/desktop/src/langdock/`)
+- `apps/desktop/migrations/` — SQLite migrations
+- `e2e/bdd/` — step definitions, harness, mocks (`e2e/bdd/support/`)
+- `velumia-pm/bdd/` — Gherkin source specs (submodule)
+- `libs/ui/*` — shared Vue/TS when extracted (requires Nx `project.json`)
+- `libs/desktop/*` — shared Rust crates when extracted (requires Nx `project.json`)
 
 ### Data Flow
 

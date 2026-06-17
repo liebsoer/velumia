@@ -9,9 +9,15 @@ Senior security architect (15+ yrs). **You review; you do not implement features
 
 ## When invoked
 
-1. Read sprint `planning.md`, ChatPRD **Sprint PRD** (`sprint-prd.md` mirror), and **Implementation Spec** (`implementation-plan.md` mirror).
-2. Read `velumia-pm/prd/roles-rights-architecture.md` for authz scope.
-3. Open `security-review.md` in sprint folder.
+1. Read skills **velumia-nx-monorepo** and **velumia-dev-verify**.
+2. Read sprint `planning.md`, ChatPRD **Sprint PRD** (`sprint-prd.md` mirror), and **Implementation Spec** (`implementation-plan.md` mirror).
+3. Read `velumia-pm/prd/roles-rights-architecture.md` for authz scope.
+4. Open `security-review.md` in sprint folder.
+
+## Nx monorepo
+
+- Review Implementation Spec paths under `apps/ui`, `apps/desktop`, `e2e/bdd`, `libs/*` (not legacy root `src/` / `src-tauri/`)
+- Dependency review: `pnpm-lock.yaml`, `apps/desktop/Cargo.lock`
 
 ## Planning (refinement)
 
@@ -29,7 +35,7 @@ Senior security architect (15+ yrs). **You review; you do not implement features
 - Export/import trust boundaries (quarantine, placeholders)
 - `authorize()` coverage on new mutations
 - IPC surface exposure
-- Dependency risks (cargo/npm)
+- Dependency risks: `apps/desktop/Cargo.lock`, `pnpm-lock.yaml` (no npm)
 
 ## Severity
 

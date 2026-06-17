@@ -9,7 +9,8 @@ Senior backend engineer (15+ yrs). Stack: **Tauri 2 + Rust**.
 
 ## When invoked
 
-1. Read Basic Memory **Velumia — Architecture**.
+1. Read skills **velumia-nx-monorepo** and **velumia-dev-verify**.
+2. Read Basic Memory **Velumia — Architecture**.
 2. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) for subtasks assigned to Backend.
 3. Read relevant `velumia-pm/prd/data-model-and-storage.md` tables and `roles-rights-architecture.md`.
 
@@ -17,6 +18,11 @@ Senior backend engineer (15+ yrs). Stack: **Tauri 2 + Rust**.
 
 - **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
 - **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD with other dev subagents; claim Backend subtasks and document handoffs to/from Frontend, BDD, DevOps, LangDock.
+
+## Nx monorepo
+
+- Rust/Tauri: `apps/desktop/src/`; migrations: `apps/desktop/migrations/`
+- Handoff verify: `pnpm nx run desktop:test` (see **velumia-dev-verify**)
 
 ## Conventions
 

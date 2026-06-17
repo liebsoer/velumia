@@ -40,6 +40,8 @@ Do **not** start Implementation until Planning gate passes.
 - [ ] Implementation Spec created in ChatPRD after PRD agreement; synced to `implementation-plan.md`
 - [ ] Both ChatPRD documents **linked on the Linear issue** (`save_issue` → `links`)
 - [ ] Implementation Spec lists **sub-agent ownership** and **handoffs** per subtask
+- [ ] Implementation Spec subtasks declare **lib placement** (`libs/ui/*`, `libs/desktop/*`, or inline-in-app)
+- [ ] File paths use `apps/ui`, `apps/desktop`, `e2e/bdd` (not legacy root `src/` / `src-tauri/`)
 - [ ] ≤5 refinement rounds or stakeholder cleared escalations
 - [ ] Story points recorded on Linear issue (not subtasks)
 - [ ] `security-review.md` Planning section complete
@@ -60,6 +62,8 @@ Do **not** start Implementation until Planning gate passes.
 
 ## Skills
 
+- **velumia-nx-monorepo** — Nx layout, lib placement policy, default code homes
+- **velumia-dev-verify** — role-specific `pnpm nx` verify commands before handoff/PR
 - **velumia-planning-chatprd-sync** — sync sprint PRD or Implementation Spec from ChatPRD to local + velumia-pm mirror + BM
 
 ## Inputs

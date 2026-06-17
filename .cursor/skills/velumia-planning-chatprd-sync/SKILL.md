@@ -75,5 +75,6 @@ If document content has open questions not resolved in repo specs, **do not** ma
 ## Related
 
 - Ceremony: `.cursor/skills/velumia-sprint-start/SKILL.md`
+- Nx layout (mirrored Implementation Spec paths): `.cursor/skills/velumia-nx-monorepo/SKILL.md`
 - ChatPRD prefs: `velumia-pm/.cursor/preferences/chatprd-velumia-project.md`
 - Implementation Spec template name: **ChatPRD: Feature Implementation Spec** (resolve structure via `list_templates`)

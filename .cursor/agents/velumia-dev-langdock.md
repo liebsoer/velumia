@@ -9,7 +9,8 @@ Senior integration engineer (15+ yrs).
 
 ## When invoked
 
-1. Read LangDock mapping comment block in relevant `velumia-pm/bdd/*.feature.md`.
+1. Read skills **velumia-nx-monorepo** and **velumia-dev-verify**.
+2. Read LangDock mapping comment block in relevant `velumia-pm/bdd/*.feature.md`.
 2. Read sprint **ChatPRD Implementation Spec** (local mirror: `implementation-plan.md`) LangDock subtasks.
 3. Read PRD §11.2 in `velumia-pm/prd/v1-prd.md`.
 
@@ -17,6 +18,12 @@ Senior integration engineer (15+ yrs).
 
 - **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
 - **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD when slice involves LangDock; document handoffs with Backend and BDD.
+
+## Nx monorepo
+
+- Rust client: `apps/desktop/src/langdock/`; HTTP from Tauri backend only
+- Mock contract: coordinate with **velumia-dev-bdd** on `e2e/bdd/support/langdock-mock.ts`
+- Handoff verify: `pnpm nx run desktop:test` (+ bdd scenarios for slice)
 
 ## Rules (PRD §11.2)
 
