@@ -12,7 +12,7 @@ ChatPRD is the **authoring surface** for sprint planning artifacts. Local files 
 | Document | Owner | Timing | ChatPRD template |
 |----------|-------|--------|------------------|
 | Sprint PRD | PO | **Before** refinement | (PO structure) |
-| Implementation Spec | Devs (SM coordinates) | **After** PRD agreement | **ChatPRD: Feature Implementation Spec** |
+| Implementation Spec | Devs (SM coordinates) | **After** PRD agreement | [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (**ChatPRD: Feature Implementation Spec**) |
 
 ## Ceremony flow
 
@@ -40,7 +40,7 @@ flowchart TD
 ## Planning gate
 
 - [ ] Sprint PRD created before refinement; updated after refinement; synced locally
-- [ ] Implementation Spec created after PRD agreement; synced locally
+- [ ] Implementation Spec created after PRD agreement from repo template `templates/chatprd/chatprd_feature-implementation-spec.tpl.md`; synced locally to `implementation-plan.md`
 - [ ] Both documents linked on Linear issue
 - [ ] Implementation Spec includes sub-agent ownership and handoffs
 - [ ] Story points on Linear issue

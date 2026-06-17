@@ -29,7 +29,7 @@
 
 **Document UUID:**  
 **ChatPRD URL:**  
-**Template:** ChatPRD: Feature Implementation Spec  
+**Template:** [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (**ChatPRD: Feature Implementation Spec**)  
 **Created in ChatPRD:** yes / no  
 **Linked on Linear:** yes / no  
 **Synced locally (`implementation-plan.md`):** yes / no  

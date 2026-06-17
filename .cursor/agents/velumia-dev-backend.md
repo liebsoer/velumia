@@ -17,7 +17,7 @@ Senior backend engineer (15+ yrs). Stack: **Tauri 2 + Rust**.
 ## Planning (refinement + Implementation Spec)
 
 - **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
-- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD with other dev subagents; claim Backend subtasks and document handoffs to/from Frontend, BDD, DevOps, LangDock.
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD using [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md); claim Backend subtasks in Section 5 and document handoffs to/from Frontend, BDD, DevOps, LangDock.
 
 ## Nx monorepo
 

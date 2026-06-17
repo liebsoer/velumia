@@ -17,7 +17,7 @@ Senior integration engineer (15+ yrs).
 ## Planning (refinement + Implementation Spec)
 
 - **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
-- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD when slice involves LangDock; document handoffs with Backend and BDD.
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD using [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) when slice involves LangDock; document handoffs with Backend and BDD in Section 5.
 
 ## Nx monorepo
 

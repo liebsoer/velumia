@@ -50,8 +50,8 @@ For questions **not answerable** from Linear, bdd, prd, or BM → **stop Plannin
 After PRD agreement, **SM delegates dev subagents** to create the Implementation Spec in ChatPRD. PO:
 
 - Reviews that scope matches agreed sprint PRD
-- Checks Implementation Spec subtasks declare **lib placement** and use correct `apps/ui`, `apps/desktop`, `e2e/bdd` paths (see **velumia-nx-monorepo**)
-- Does **not** block gate if Implementation Spec is dev-authored per template
+- Checks Implementation Spec follows [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (seven sections; sub-agent ownership and lib placement in Section 5)
+- Does **not** block gate if Implementation Spec is dev-authored per repo template
 
 ## Implementation
 

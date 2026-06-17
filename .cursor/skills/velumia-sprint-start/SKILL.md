@@ -29,7 +29,7 @@ Each sprint produces **two ChatPRD documents**, both **linked on the Linear issu
 3. **PO + dev subagents** — refine **using sprint PRD as input**; log in `refinement.md` (max 5 rounds/topic)
 4. **PO** — merge refinement into sprint PRD → `update_document` in ChatPRD → sync down
 5. **PO + devs agree** on sprint PRD; PO records story points on Linear issue
-6. **Devs** — `create_document` Implementation Spec in ChatPRD (template **ChatPRD: Feature Implementation Spec**) with sub-agent ownership + handoffs → link on Linear → sync down (type `implementation-spec`)
+6. **Devs** — `create_document` Implementation Spec in ChatPRD using **only** [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (ChatPRD template name: **ChatPRD: Feature Implementation Spec**). Include sub-agent ownership + handoffs in Section 5 → link on Linear → sync down (type `implementation-spec`)
 7. **Planning gate** passes → SM moves Linear to **In Progress** → Implementation
 
 Do **not** start Implementation until Planning gate passes.
@@ -37,7 +37,7 @@ Do **not** start Implementation until Planning gate passes.
 ## Planning gate checklist
 
 - [ ] Sprint PRD created in ChatPRD **before** refinement; updated after refinement; synced to `sprint-prd.md`
-- [ ] Implementation Spec created in ChatPRD after PRD agreement; synced to `implementation-plan.md`
+- [ ] Implementation Spec created in ChatPRD after PRD agreement from [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md); synced to `implementation-plan.md`
 - [ ] Both ChatPRD documents **linked on the Linear issue** (`save_issue` → `links`)
 - [ ] Implementation Spec lists **sub-agent ownership** and **handoffs** per subtask
 - [ ] Implementation Spec subtasks declare **lib placement** (`libs/ui/*`, `libs/desktop/*`, or inline-in-app)

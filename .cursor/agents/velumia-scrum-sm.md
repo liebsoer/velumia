@@ -22,9 +22,9 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 4. Delegate to **velumia-scrum-po** to **update sprint PRD in ChatPRD** after refinement; sync locally.
 5. Confirm PO + dev **agreement** on updated sprint PRD; PO records story points on Linear.
 6. Delegate to **dev subagents** (backend, frontend, bdd, devops, langdock as needed) to **create Implementation Spec in ChatPRD**:
-   - Template: **ChatPRD: Feature Implementation Spec** (`list_templates` for structure)
+   - **Mandatory template:** [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (ChatPRD name: **ChatPRD: Feature Implementation Spec**). Do not improvise structure; use all seven sections from the repo template.
    - Title: `Velumia — Implementation Spec — LIE-NNN — <short title>`
-   - Must include: subtasks, **sub-agent ownership** (`velumia-dev-*`), **handoffs**, dependency order, **lib placement** per subtask (`libs/ui/*`, `libs/desktop/*`, or inline-in-app)
+   - Section 5 must include: subtasks, **sub-agent ownership** (`velumia-dev-*`), **handoffs**, dependency order, **lib placement** per subtask (`libs/ui/*`, `libs/desktop/*`, or inline-in-app)
    - Link on Linear; sync via **velumia-planning-chatprd-sync** (`document_type: implementation-spec`)
 7. Delegate to **velumia-dev-security** for Planning section of `security-review.md`.
 8. **Planning gate** — all items in `velumia-sprint-start` checklist → move Linear to **In Progress** → Implementation.

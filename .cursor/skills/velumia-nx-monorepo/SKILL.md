@@ -83,6 +83,8 @@ Every **Implementation Spec** subtask must declare one of:
 - `libs/desktop/<name>` — shared IPC/Tauri-adjacent TS
 - **inline-in-app** — stays in `apps/ui` or `apps/desktop`
 
+Author specs from [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md); paths and lib placement go in **Section 5**.
+
 Do not create `libs/*` packages without an explicit spec subtask. New libs need an Nx `project.json` under the lib folder.
 
 ## Related

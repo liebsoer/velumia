@@ -17,7 +17,7 @@ Senior frontend engineer (15+ yrs). Stack: **Vue 3 + Vite** in Tauri webview.
 ## Planning (refinement + Implementation Spec)
 
 - **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
-- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD; claim Frontend subtasks and document handoffs (e.g. IPC contract from Backend).
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD using [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md); claim Frontend subtasks in Section 5 and document handoffs (e.g. IPC contract from Backend).
 
 ## Nx monorepo
 

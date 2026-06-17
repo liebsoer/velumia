@@ -17,7 +17,7 @@ Senior BDD engineer (15+ yrs).
 ## Planning (refinement + Implementation Spec)
 
 - **Refinement:** Review PO's ChatPRD **Sprint PRD**; comment in `refinement.md`.
-- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD; claim BDD/harness subtasks and document handoffs (e.g. `@mock-langdock` stub before slice scenarios).
+- **After PRD agreement:** Co-author **Implementation Spec** in ChatPRD using [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md); claim BDD/harness subtasks in Section 5 and document handoffs (e.g. `@mock-langdock` stub before slice scenarios).
 
 ## Nx monorepo
 
