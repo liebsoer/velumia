@@ -3,7 +3,7 @@
 - Prefer `velumia-pm` as a proper git submodule at `velumia-pm/`, not a sibling symlink.
 - Create Sprint PRD and Implementation Spec **in ChatPRD** (MCP `create_document` / `update_document`); do not author local `sprint-prd.md` or `implementation-plan.md` first and publish upward — local files are mirrors synced via `velumia-planning-chatprd-sync`.
 - Prefer Nx-native dev commands (`pnpm nx run ui:dev`, `pnpm nx run desktop:dev`); no root npm/pnpm script aliases.
-- Implementation Specs must declare shared code placement in `libs/ui/*` or `libs/desktop/*`, or explicitly inline-in-app.
+- Implementation Specs must declare shared code placement in `libs/ui/*` or `libs/desktop/*`, or explicitly inline-in-app; do not create `libs/*` Nx packages without an explicit spec subtask.
 
 ## Learned Workspace Facts
 
