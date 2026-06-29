@@ -7,8 +7,8 @@ Nx + pnpm monorepo: `apps/ui` (Vue), `apps/desktop` (Tauri/Rust), `e2e/bdd` (Cuc
 ## Prerequisites
 
 - macOS 12+ (V1 dogfood)
-- [Node.js](https://nodejs.org/) 22+
-- [pnpm](https://pnpm.io/) 10+
+- [Node.js](https://nodejs.org/) 22.23.1 (see `.node-version`; fnm/nvm/asdf supported)
+- [pnpm](https://pnpm.io/) 10.12.1 (`packageManager` in `package.json`; `corepack enable` recommended)
 - [Rust](https://rustup.rs/)
 - Tauri system dependencies: https://tauri.app/start/prerequisites/
 

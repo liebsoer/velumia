@@ -1,5 +1,7 @@
 # Submodule setup
 
+Toolchain (match CI): Node **22.23.1** (`.node-version`), pnpm **10.12.1** (`package.json` → `packageManager`). With [Corepack](https://nodejs.org/api/corepack.html): `corepack enable`.
+
 ```bash
 cd ~/workspace/private/velumia
 git submodule update --init --recursive
