@@ -1,116 +1,85 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { webInvoke } from "./web-api";
 
-export interface ConnectionWidgetState {
-  status: "not_configured" | "connected" | "configuration_error" | "offline";
-  message?: string;
+export type {
+  ConnectionWidgetState,
+  LangdockProfile,
+  LibraryCounts,
+  ListPromptFilters,
+  ProfileInput,
+  PromptFolder,
+  PromptSummary,
+  TagSummary,
+} from "./ipc-types";
+import type { ConnectionWidgetState, LangdockProfile, LibraryCounts, ListPromptFilters, ProfileInput, PromptFolder, PromptSummary, TagSummary } from "./ipc-types";
+
+function hasTauriBridge(): boolean {
+  return typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
 }
 
-export interface LangdockProfile {
-  id: string;
-  name: string;
-  base_url: string;
-  is_default: boolean;
-  connection_status: ConnectionWidgetState["status"];
-  last_tested_at?: string;
-}
-
-export interface ProfileInput {
-  name: string;
-  base_url?: string;
-  api_key?: string;
-  is_default?: boolean;
-}
-
-export interface LibraryCounts {
-  prompts: number;
-  agents: number;
-  skills: number;
-}
-
-export interface TagSummary {
-  id: string;
-  name: string;
-}
-
-export interface PromptSummary {
-  id: string;
-  title: string;
-  slug: string;
-  folder_id: string | null;
-  tags: TagSummary[];
-  is_favorite: boolean;
-  updated_at: string;
-}
-
-export interface PromptFolder {
-  id: string;
-  title: string;
-  slug: string;
-  parent_id: string | null;
-}
-
-export interface ListPromptFilters {
-  folderId?: string | null;
-  tagId?: string | null;
-  favoritesOnly?: boolean;
+async function ipc<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
+  if (isTauri() && hasTauriBridge()) {
+    return invoke<T>(cmd, args);
+  }
+  return webInvoke<T>(cmd, args);
 }
 
 export const api = {
-  ping: () => invoke<string>("ping"),
-  isFirstLaunch: () => invoke<boolean>("is_first_launch"),
-  completeWizard: (skipped: boolean) => invoke<void>("complete_wizard", { skipped }),
-  getConnectionWidget: () => invoke<ConnectionWidgetState>("get_connection_widget"),
-  listProfiles: () => invoke<LangdockProfile[]>("list_langdock_profiles"),
+  ping: () => ipc<string>("ping"),
+  isFirstLaunch: () => ipc<boolean>("is_first_launch"),
+  completeWizard: (skipped: boolean) => ipc<void>("complete_wizard", { skipped }),
+  getConnectionWidget: () => ipc<ConnectionWidgetState>("get_connection_widget"),
+  listProfiles: () => ipc<LangdockProfile[]>("list_langdock_profiles"),
   saveProfile: (input: ProfileInput, profileId?: string, testConnectivity = true) =>
-    invoke<LangdockProfile>("save_langdock_profile", {
+    ipc<LangdockProfile>("save_langdock_profile", {
       input,
       profileId: profileId ?? null,
       testConnectivity,
     }),
   testConnection: (profileId: string) =>
-    invoke<LangdockProfile>("test_langdock_connection", { profileId }),
+    ipc<LangdockProfile>("test_langdock_connection", { profileId }),
   setDefaultProfile: (profileId: string) =>
-    invoke<LangdockProfile>("set_default_langdock_profile", { profileId }),
+    ipc<LangdockProfile>("set_default_langdock_profile", { profileId }),
   deleteProfile: (profileId: string) =>
-    invoke<void>("delete_langdock_profile", { profileId }),
+    ipc<void>("delete_langdock_profile", { profileId }),
   listPrompts: (filters: ListPromptFilters = {}) =>
-    invoke<PromptSummary[]>("list_prompts", {
+    ipc<PromptSummary[]>("list_prompts", {
       folderId: filters.folderId ?? null,
       tagId: filters.tagId ?? null,
       favoritesOnly: filters.favoritesOnly ?? null,
     }),
-  getPrompt: (promptId: string) => invoke<PromptSummary>("get_prompt", { promptId }),
+  getPrompt: (promptId: string) => ipc<PromptSummary>("get_prompt", { promptId }),
   createPrompt: (title: string, folderId?: string | null) =>
-    invoke<string>("create_prompt", { title, folderId: folderId ?? null }),
+    ipc<string>("create_prompt", { title, folderId: folderId ?? null }),
   updatePrompt: (promptId: string, title?: string, folderId?: string | null) =>
-    invoke<PromptSummary>("update_prompt", {
+    ipc<PromptSummary>("update_prompt", {
       promptId,
       title: title ?? null,
       folderId: folderId === undefined ? null : folderId,
     }),
-  trashPrompt: (promptId: string) => invoke<void>("trash_prompt", { promptId }),
-  listPromptFolders: () => invoke<PromptFolder[]>("list_prompt_folders"),
+  trashPrompt: (promptId: string) => ipc<void>("trash_prompt", { promptId }),
+  listPromptFolders: () => ipc<PromptFolder[]>("list_prompt_folders"),
   createPromptFolder: (title: string, parentId?: string | null) =>
-    invoke<PromptFolder>("create_prompt_folder", { title, parentId: parentId ?? null }),
+    ipc<PromptFolder>("create_prompt_folder", { title, parentId: parentId ?? null }),
   movePromptToFolder: (promptId: string, folderId?: string | null) =>
-    invoke<PromptSummary>("move_prompt_to_folder", {
+    ipc<PromptSummary>("move_prompt_to_folder", {
       promptId,
       folderId: folderId ?? null,
     }),
-  listTags: () => invoke<TagSummary[]>("list_tags"),
+  listTags: () => ipc<TagSummary[]>("list_tags"),
   setPromptTags: (promptId: string, tagNames: string[]) =>
-    invoke<PromptSummary>("set_prompt_tags", { promptId, tagNames }),
+    ipc<PromptSummary>("set_prompt_tags", { promptId, tagNames }),
   addPromptTag: (promptId: string, tagName: string) =>
-    invoke<PromptSummary>("add_prompt_tag", { promptId, tagName }),
+    ipc<PromptSummary>("add_prompt_tag", { promptId, tagName }),
   removePromptTag: (promptId: string, tagId: string) =>
-    invoke<PromptSummary>("remove_prompt_tag", { promptId, tagId }),
-  setPromptFavorite: (promptId: string) => invoke<void>("set_prompt_favorite", { promptId }),
-  unsetPromptFavorite: (promptId: string) => invoke<void>("unset_prompt_favorite", { promptId }),
-  canRunPrompt: () => invoke<boolean>("can_run_prompt"),
-  seedSamples: () => invoke<void>("seed_starter_samples"),
-  libraryCounts: () => invoke<LibraryCounts>("library_counts"),
+    ipc<PromptSummary>("remove_prompt_tag", { promptId, tagId }),
+  setPromptFavorite: (promptId: string) => ipc<void>("set_prompt_favorite", { promptId }),
+  unsetPromptFavorite: (promptId: string) => ipc<void>("unset_prompt_favorite", { promptId }),
+  canRunPrompt: () => ipc<boolean>("can_run_prompt"),
+  seedSamples: () => ipc<void>("seed_starter_samples"),
+  libraryCounts: () => ipc<LibraryCounts>("library_counts"),
   checkAuthorize: (action: string) =>
-    invoke<{ allowed: boolean }>("check_authorize", { action }),
+    ipc<{ allowed: boolean }>("check_authorize", { action }),
 };
 
 export function statusLabel(status: ConnectionWidgetState["status"]): string {
@@ -136,5 +105,11 @@ export function statusClass(status: ConnectionWidgetState["status"]): string {
       return "status-warning";
     default:
       return "status-muted";
+  }
+}
+
+declare global {
+  interface Window {
+    __TAURI_INTERNALS__?: { invoke: typeof invoke };
   }
 }
