@@ -34,6 +34,9 @@ jobs:
   bdd:
     runs-on: macos-latest
     needs: build
+    strategy:
+      matrix:
+        tags: ["@mock-langdock", "@prompt-library"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,10 +51,12 @@ jobs:
           node-version: "22"
           cache: pnpm
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run BDD (@mock-langdock)
+      - name: Run BDD (${{ matrix.tags }})
         run: pnpm nx run bdd:test
         env:
-          BDD_TAGS: "@mock-langdock"
+          BDD_TAGS: ${{ matrix.tags }}
