@@ -5,6 +5,7 @@
 - Prefer Nx-native dev commands (`pnpm nx run ui:dev`, `pnpm nx run desktop:dev`); no root npm/pnpm script aliases.
 - Implementation Specs must declare shared code placement in `libs/ui/*` or `libs/desktop/*`, or explicitly inline-in-app; do not create `libs/*` Nx packages without an explicit spec subtask.
 - `apps/ui` must work in both Tauri desktop and standalone Vite web; `apps/ui/src/lib/api.ts` routes to Tauri `invoke` when the bridge is present, otherwise `webInvoke` in `web-api.ts`.
+- Match Node and pnpm versions between local dev and CI — pin exact versions (no loose majors in CI).
 
 ## Learned Workspace Facts
 
@@ -16,7 +17,7 @@
 - **Sprint ceremony (ChatPRD-first):** PO creates Sprint PRD in ChatPRD **before** refinement; after refinement PO updates PRD; devs create Implementation Spec from [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](./templates/chatprd/chatprd_feature-implementation-spec.tpl.md) with sub-agent handoffs **after** PRD agreement; both docs linked on Linear; local mirrors under `.ai/velumia-sprints/LIE-NNN/` synced via `velumia-planning-chatprd-sync`. Start with `/sprint-start LIE-NNN`. See `.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`.
 - **Dev agents:** read skills `velumia-nx-monorepo` (layout, lib policy) and `velumia-dev-verify` (pre-handoff `pnpm nx` checks) before implementing or handing off.
 - **Nx monorepo (LIE-76):** pnpm workspace with `apps/ui` (Vue/Vite), `apps/desktop` (Tauri/Rust), `e2e/bdd` (BDD harness); shared code in `libs/ui/*` and `libs/desktop/*` when extracted.
-- Package manager: **pnpm** (`pnpm nx run …`).
+- **Toolchain:** Node **22.23.1** (`.node-version`, `.nvmrc`, `engines.node`); pnpm **10.12.1** (`packageManager`, `engines.pnpm`); CI reads `.node-version` and `packageManager` via `actions/setup-node` + `pnpm/action-setup`.
 - Tauri `beforeDevCommand` / `beforeBuildCommand` run from the **repo root** — use `pnpm nx run ui:dev` / `ui:build` directly (no `cd ../..`).
 - **Standalone Vite web dev:** `apps/ui/src/lib/web-api.ts` implements IPC commands via `localStorage` (key `velumia.web-dev.v1`); shared DTOs in `ipc-types.ts`.
 - **First-launch LangDock wizard:** `apps/ui/src/views/WizardView.vue` (credentials → optional starter samples); validate before step 2, show errors on all steps, busy state during connectivity test.
