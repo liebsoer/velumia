@@ -17,7 +17,20 @@ Tauri 2 invoke commands exposed to the Vue frontend via `@tauri-apps/api/core`.
 | `set_default_langdock_profile` | Set default BYOK profile |
 | `delete_langdock_profile` | Remove profile + keychain entry |
 | `check_authorize` | Returns allow/deny for permission action |
-| `create_prompt` | Create library prompt (requires `prompt:write`) |
+| `list_prompts` | List active prompts; optional `folderId`, `tagId`, `favoritesOnly` filters |
+| `get_prompt` | Single prompt summary with tags and favorite flag |
+| `create_prompt` | Create prompt; optional `folderId`; requires `prompt:write` |
+| `update_prompt` | Update title and/or folder; requires `prompt:write` |
+| `trash_prompt` | Soft-delete prompt (`lifecycle_status = trashed`) |
+| `list_prompt_folders` | Flat folder list for tree UI |
+| `create_prompt_folder` | Create folder; optional `parentId` (max 2 levels) |
+| `move_prompt_to_folder` | Move prompt to folder or root (`folderId` null) |
+| `list_tags` | Owner tag dictionary |
+| `set_prompt_tags` | Replace prompt tags by name list |
+| `add_prompt_tag` | Add one tag by name |
+| `remove_prompt_tag` | Remove tag by id |
+| `set_prompt_favorite` | Star prompt |
+| `unset_prompt_favorite` | Unstar prompt |
 | `can_run_prompt` | True when LangDock connected |
 | `seed_starter_samples` | Seed sample library content |
 | `library_counts` | Active entity counts |

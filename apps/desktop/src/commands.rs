@@ -1,6 +1,6 @@
 use crate::authz::{authorize, AuthzResult, Permission};
 use crate::langdock::{LangdockProfile, ProfileInput, ProfileService};
-use crate::prompts::PromptService;
+use crate::prompts::{ListPromptFilters, PromptFolder, PromptService, PromptSummary, TagSummary};
 use crate::state::{principal, AppState};
 use serde::Deserialize;
 use tauri::State;
@@ -137,14 +137,123 @@ pub fn check_authorize(state: State<AppState>, action: String) -> Result<AuthzRe
 }
 
 #[tauri::command]
-pub fn create_prompt(state: State<AppState>, title: String) -> Result<String, String> {
+pub fn list_prompts(
+    state: State<AppState>,
+    folder_id: Option<String>,
+    tag_id: Option<String>,
+    favorites_only: Option<bool>,
+) -> Result<Vec<PromptSummary>, String> {
     state.with_db(|db| {
-        let p = principal(db)?;
-        if !matches!(authorize(&p, Permission::PromptWrite), crate::authz::AuthzResult::Allowed) {
-            return Err("permission denied".into());
-        }
-        PromptService::create(db, &title)
+        PromptService::list(
+            db,
+            ListPromptFilters {
+                folder_id,
+                tag_id,
+                favorites_only,
+            },
+        )
     })
+}
+
+#[tauri::command]
+pub fn get_prompt(state: State<AppState>, prompt_id: String) -> Result<PromptSummary, String> {
+    state.with_db(|db| PromptService::get(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn create_prompt(
+    state: State<AppState>,
+    title: String,
+    folder_id: Option<String>,
+) -> Result<String, String> {
+    state.with_db(|db| PromptService::create(db, &title, folder_id.as_deref()))
+}
+
+#[tauri::command]
+pub fn update_prompt(
+    state: State<AppState>,
+    prompt_id: String,
+    title: Option<String>,
+    folder_id: Option<Option<String>>,
+) -> Result<PromptSummary, String> {
+    state.with_db(|db| {
+        PromptService::update(
+            db,
+            &prompt_id,
+            title.as_deref(),
+            folder_id.as_ref().map(|f| f.as_deref()),
+        )
+    })
+}
+
+#[tauri::command]
+pub fn trash_prompt(state: State<AppState>, prompt_id: String) -> Result<(), String> {
+    state.with_db(|db| PromptService::trash(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn list_prompt_folders(state: State<AppState>) -> Result<Vec<PromptFolder>, String> {
+    state.with_db(|db| PromptService::list_folders(db))
+}
+
+#[tauri::command]
+pub fn create_prompt_folder(
+    state: State<AppState>,
+    title: String,
+    parent_id: Option<String>,
+) -> Result<PromptFolder, String> {
+    state.with_db(|db| PromptService::create_folder(db, &title, parent_id.as_deref()))
+}
+
+#[tauri::command]
+pub fn move_prompt_to_folder(
+    state: State<AppState>,
+    prompt_id: String,
+    folder_id: Option<String>,
+) -> Result<PromptSummary, String> {
+    state.with_db(|db| PromptService::move_to_folder(db, &prompt_id, folder_id.as_deref()))
+}
+
+#[tauri::command]
+pub fn list_tags(state: State<AppState>) -> Result<Vec<TagSummary>, String> {
+    state.with_db(|db| PromptService::list_tags(db))
+}
+
+#[tauri::command]
+pub fn set_prompt_tags(
+    state: State<AppState>,
+    prompt_id: String,
+    tag_names: Vec<String>,
+) -> Result<PromptSummary, String> {
+    state.with_db(|db| PromptService::set_tags(db, &prompt_id, &tag_names))
+}
+
+#[tauri::command]
+pub fn add_prompt_tag(
+    state: State<AppState>,
+    prompt_id: String,
+    tag_name: String,
+) -> Result<PromptSummary, String> {
+    state.with_db(|db| PromptService::add_tag(db, &prompt_id, &tag_name))
+}
+
+#[tauri::command]
+pub fn remove_prompt_tag(
+    state: State<AppState>,
+    prompt_id: String,
+    tag_id: String,
+) -> Result<PromptSummary, String> {
+    state.with_db(|db| PromptService::remove_tag(db, &prompt_id, &tag_id))
+}
+
+#[tauri::command]
+pub fn set_prompt_favorite(state: State<AppState>, prompt_id: String) -> Result<(), String> {
+    state.with_db(|db| PromptService::set_favorite(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn unset_prompt_favorite(state: State<AppState>, prompt_id: String) -> Result<(), String> {
+    state.with_db(|db| PromptService::unset_favorite(db, &prompt_id))
 }
 
 #[tauri::command]
@@ -161,7 +270,7 @@ pub fn can_run_prompt(state: State<AppState>) -> Result<bool, String> {
 #[tauri::command]
 pub fn seed_starter_samples(state: State<AppState>) -> Result<(), String> {
     state.with_db(|db| {
-        PromptService::create(db, "Sample prompt")?;
+        PromptService::create(db, "Sample prompt", None)?;
         db.set_setting("samples_seeded", "true")
             .map_err(|e| e.to_string())
     })

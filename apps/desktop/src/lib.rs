@@ -3,7 +3,7 @@ mod commands;
 pub mod db;
 pub mod keychain;
 pub mod langdock;
-mod prompts;
+pub mod prompts;
 pub mod state;
 
 use db::AppDatabase;
@@ -40,7 +40,20 @@ pub fn run() {
             commands::set_default_langdock_profile,
             commands::delete_langdock_profile,
             commands::check_authorize,
+            commands::list_prompts,
+            commands::get_prompt,
             commands::create_prompt,
+            commands::update_prompt,
+            commands::trash_prompt,
+            commands::list_prompt_folders,
+            commands::create_prompt_folder,
+            commands::move_prompt_to_folder,
+            commands::list_tags,
+            commands::set_prompt_tags,
+            commands::add_prompt_tag,
+            commands::remove_prompt_tag,
+            commands::set_prompt_favorite,
+            commands::unset_prompt_favorite,
             commands::can_run_prompt,
             commands::seed_starter_samples,
             commands::library_counts,
