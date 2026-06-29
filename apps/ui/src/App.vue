@@ -4,14 +4,17 @@ import { api } from "./lib/api";
 import DashboardView from "./views/DashboardView.vue";
 import WizardView from "./views/WizardView.vue";
 import SettingsView from "./views/SettingsView.vue";
+import PromptLibraryView from "./views/PromptLibraryView.vue";
 
-type View = "wizard" | "dashboard" | "settings";
+type View = "wizard" | "dashboard" | "prompts" | "settings";
 
 const view = ref<View>("dashboard");
 const showWizard = ref(false);
 const version = ref("");
+const startPromptCreate = ref(false);
 
 const dashboardRef = ref<InstanceType<typeof DashboardView> | null>(null);
+const promptsRef = ref<InstanceType<typeof PromptLibraryView> | null>(null);
 
 async function init() {
   version.value = await api.ping();
@@ -34,6 +37,17 @@ function backToDashboard() {
   dashboardRef.value?.refresh();
 }
 
+function openPrompts(create = false) {
+  startPromptCreate.value = create;
+  view.value = "prompts";
+}
+
+async function onPromptsNav() {
+  startPromptCreate.value = false;
+  view.value = "prompts";
+  await promptsRef.value?.refresh();
+}
+
 onMounted(init);
 </script>
 
@@ -50,7 +64,14 @@ onMounted(init);
         >
           Dashboard
         </button>
-        <button type="button" class="nav-item muted" disabled>Prompts</button>
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ active: view === 'prompts' }"
+          @click="onPromptsNav"
+        >
+          Prompts
+        </button>
         <button type="button" class="nav-item muted" disabled>Agents</button>
         <button type="button" class="nav-item muted" disabled>Skills</button>
         <button
@@ -70,6 +91,12 @@ onMounted(init);
       v-else-if="view === 'dashboard'"
       ref="dashboardRef"
       @open-settings="openSettings"
+      @open-prompts="openPrompts(true)"
+    />
+    <PromptLibraryView
+      v-else-if="view === 'prompts'"
+      ref="promptsRef"
+      :start-create="startPromptCreate"
     />
     <div v-else class="settings-wrap">
       <button type="button" class="back" @click="backToDashboard">← Dashboard</button>
@@ -82,6 +109,12 @@ onMounted(init);
 .layout {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+}
+
+.layout > :not(.sidebar) {
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar {
