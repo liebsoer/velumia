@@ -10,7 +10,7 @@
 
 - `velumia-pm/` is a git submodule at repo root pointing to `git@github.com:liebsoer/velumia-pm.git`; tracked in `.gitmodules`; listed in `nx.json` `.nxignore` (not an Nx project).
 - Fresh clone: `git clone --recurse-submodules git@github.com:liebsoer/velumia.git`; existing checkout: `git submodule update --init --recursive` (see `SETUP.md`).
-- BDD Gherkin specs: `velumia-pm/bdd/`; local runner: `e2e/bdd/` (`pnpm nx run bdd:test`; CI matrix tags `@mock-langdock`, `@prompt-library`).
+- BDD Gherkin specs: `velumia-pm/bdd/`; local runner: `e2e/bdd/` (`pnpm nx run bdd:test`; CI matrix tags `@mock-langdock`, `@prompt-library`). GitHub CI does **not** checkout `velumia-pm` (dev-only submodule; Bdd harness uses `e2e/bdd/`).
 - **Stack (V1):** Tauri 2 + Vue 3 + SQLite; local-first desktop app for prompts, agents, and skills with LangDock BYOK; macOS dogfood.
 - IPC contract: `docs/ipc.md`.
 - **Sprint ceremony (ChatPRD-first):** PO creates Sprint PRD in ChatPRD **before** refinement; after refinement PO updates PRD; devs create Implementation Spec from [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](./templates/chatprd/chatprd_feature-implementation-spec.tpl.md) with sub-agent handoffs **after** PRD agreement; both docs linked on Linear; local mirrors under `.ai/velumia-sprints/LIE-NNN/` synced via `velumia-planning-chatprd-sync`. Start with `/sprint-start LIE-NNN`. See `.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`.
