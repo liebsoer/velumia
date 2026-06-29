@@ -4,7 +4,7 @@
 - Create Sprint PRD and Implementation Spec **in ChatPRD** (MCP `create_document` / `update_document`); Implementation Spec **must** use [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](./templates/chatprd/chatprd_feature-implementation-spec.tpl.md) as the section outline. Do not author local `sprint-prd.md` or `implementation-plan.md` first — local files are mirrors synced via `velumia-planning-chatprd-sync`.
 - Prefer Nx-native dev commands (`pnpm nx run ui:dev`, `pnpm nx run desktop:dev`); no root npm/pnpm script aliases.
 - Implementation Specs must declare shared code placement in `libs/ui/*` or `libs/desktop/*`, or explicitly inline-in-app; do not create `libs/*` Nx packages without an explicit spec subtask.
-- `apps/ui` must work in both Tauri desktop and standalone Vite web; API layer must guard Tauri `invoke` for web builds.
+- `apps/ui` must work in both Tauri desktop and standalone Vite web; `apps/ui/src/lib/api.ts` routes to Tauri `invoke` when the bridge is present, otherwise `webInvoke` in `web-api.ts`.
 
 ## Learned Workspace Facts
 
@@ -18,3 +18,5 @@
 - **Nx monorepo (LIE-76):** pnpm workspace with `apps/ui` (Vue/Vite), `apps/desktop` (Tauri/Rust), `e2e/bdd` (BDD harness); shared code in `libs/ui/*` and `libs/desktop/*` when extracted.
 - Package manager: **pnpm** (`pnpm nx run …`).
 - Tauri `beforeDevCommand` / `beforeBuildCommand` run from the **repo root** — use `pnpm nx run ui:dev` / `ui:build` directly (no `cd ../..`).
+- **Standalone Vite web dev:** `apps/ui/src/lib/web-api.ts` implements IPC commands via `localStorage` (key `velumia.web-dev.v1`); shared DTOs in `ipc-types.ts`.
+- **First-launch LangDock wizard:** `apps/ui/src/views/WizardView.vue` (credentials → optional starter samples); validate before step 2, show errors on all steps, busy state during connectivity test.
