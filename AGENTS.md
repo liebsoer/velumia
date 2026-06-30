@@ -21,3 +21,16 @@
 - Tauri `beforeDevCommand` / `beforeBuildCommand` run from the **repo root** — use `pnpm nx run ui:dev` / `ui:build` directly (no `cd ../..`).
 - **Standalone Vite web dev:** `apps/ui/src/lib/web-api.ts` implements IPC commands via `localStorage` (key `velumia.web-dev.v1`); shared DTOs in `ipc-types.ts`.
 - **First-launch LangDock wizard:** `apps/ui/src/views/WizardView.vue` (credentials → optional starter samples); validate before step 2, show errors on all steps, busy state during connectivity test.
+
+## Cursor Cloud specific instructions
+
+Standard dev/test/build commands live in `README.md` and the Nx project files (`apps/ui/project.json`, `apps/desktop/project.json`, `e2e/bdd/project.json`); the notes below are the non-obvious caveats for this Linux cloud VM (the product itself targets macOS).
+
+- **Node:** the active `node` is `/exec-daemon/node` (currently 22.14.x) and it shadows `nvm`/`/usr/bin/node` because `/exec-daemon` is prepended to `PATH`. It is a compatible 22.x, so the `WARN Unsupported engine: wanted 22.23.1` from pnpm is harmless — do not waste time trying to force exactly 22.23.1.
+- **Rust must be ≥ 1.85.** A transitive crate (`serde_spanned`) requires `edition2024`, so the older 1.83 toolchain fails to compile. The snapshot has stable (1.96) set as the rustup default; if `cargo`/`desktop:test` ever fails with an `edition2024` error, run `rustup default stable`.
+- **`desktop:test` and the `@prompt-library` BDD scenarios shell out to `cargo test`** (`e2e/bdd/steps/prompts.steps.ts`), so a working Rust toolchain is required even for those BDD tags — they are not pure-JS tests.
+- **Nx caches `bdd:test` without keying on `BDD_TAGS`.** Switching tags returns stale cached results. Run `pnpm nx run bdd:test --skip-nx-cache`, or invoke the runner directly: `BDD_TAGS=@prompt-library node --import tsx e2e/bdd/run.ts`.
+- **Running the real Tauri app (`desktop:dev`) on this headless Linux VM:** Tauri Linux deps (`libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, etc.) are already in the snapshot. Launch under a virtual display, e.g. `WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x800x24" pnpm nx run desktop:dev`.
+- **Port 1420 is strict (`strictPort`).** `desktop:dev` starts its own `ui:dev` via `beforeDevCommand`, so do not run `ui:dev` separately at the same time or the Tauri launch will fail on the port conflict.
+- **For UI-only work, prefer `ui:dev` (browser at `http://localhost:1420`).** It uses the `localStorage` web mock (`web-api.ts`), so the full wizard + prompt-library flows work without the Rust backend or any LangDock key.
+- The `velumia-pm/` submodule uses an SSH remote and is dev-only (not needed for build/test); do not block setup on `git submodule update`.
