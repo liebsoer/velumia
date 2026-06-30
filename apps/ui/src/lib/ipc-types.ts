@@ -30,6 +30,8 @@ export interface TagSummary {
   name: string;
 }
 
+export type PromptContentSyntax = "auto" | "plaintext" | "markdown" | "xml" | "json";
+
 export interface PromptSummary {
   id: string;
   title: string;
@@ -37,6 +39,7 @@ export interface PromptSummary {
   folder_id: string | null;
   tags: TagSummary[];
   is_favorite: boolean;
+  content_syntax: PromptContentSyntax;
   updated_at: string;
 }
 
@@ -51,4 +54,12 @@ export interface ListPromptFilters {
   folderId?: string | null;
   tagId?: string | null;
   favoritesOnly?: boolean;
+}
+
+export interface PromptVersionSummary {
+  id: string;
+  prompt_id: string;
+  version_number: number;
+  created_at: string;
+  is_head: boolean;
 }

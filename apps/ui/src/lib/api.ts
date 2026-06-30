@@ -7,11 +7,24 @@ export type {
   LibraryCounts,
   ListPromptFilters,
   ProfileInput,
+  PromptContentSyntax,
   PromptFolder,
   PromptSummary,
+  PromptVersionSummary,
   TagSummary,
 } from "./ipc-types";
-import type { ConnectionWidgetState, LangdockProfile, LibraryCounts, ListPromptFilters, ProfileInput, PromptFolder, PromptSummary, TagSummary } from "./ipc-types";
+import type {
+  ConnectionWidgetState,
+  LangdockProfile,
+  LibraryCounts,
+  ListPromptFilters,
+  ProfileInput,
+  PromptContentSyntax,
+  PromptFolder,
+  PromptSummary,
+  PromptVersionSummary,
+  TagSummary,
+} from "./ipc-types";
 
 function hasTauriBridge(): boolean {
   return typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
@@ -51,12 +64,20 @@ export const api = {
   getPrompt: (promptId: string) => ipc<PromptSummary>("get_prompt", { promptId }),
   createPrompt: (title: string, folderId?: string | null) =>
     ipc<string>("create_prompt", { title, folderId: folderId ?? null }),
-  updatePrompt: (promptId: string, title?: string, folderId?: string | null) =>
-    ipc<PromptSummary>("update_prompt", {
-      promptId,
-      title: title ?? null,
-      folderId: folderId === undefined ? null : folderId,
-    }),
+  updatePrompt: (
+    promptId: string,
+    options: {
+      title?: string;
+      folderId?: string | null;
+      contentSyntax?: PromptContentSyntax;
+    } = {},
+  ) => {
+    const args: Record<string, unknown> = { promptId };
+    if (options.title !== undefined) args.title = options.title;
+    if (options.folderId !== undefined) args.folderId = options.folderId;
+    if (options.contentSyntax !== undefined) args.contentSyntax = options.contentSyntax;
+    return ipc<PromptSummary>("update_prompt", args);
+  },
   trashPrompt: (promptId: string) => ipc<void>("trash_prompt", { promptId }),
   listPromptFolders: () => ipc<PromptFolder[]>("list_prompt_folders"),
   createPromptFolder: (title: string, parentId?: string | null) =>
@@ -80,6 +101,14 @@ export const api = {
   libraryCounts: () => ipc<LibraryCounts>("library_counts"),
   checkAuthorize: (action: string) =>
     ipc<{ allowed: boolean }>("check_authorize", { action }),
+  savePromptContent: (promptId: string, content: string) =>
+    ipc<PromptVersionSummary>("save_prompt_content", { promptId, content }),
+  listPromptVersions: (promptId: string) =>
+    ipc<PromptVersionSummary[]>("list_prompt_versions", { promptId }),
+  getPromptVersionContent: (versionId: string) =>
+    ipc<string>("get_prompt_version_content", { versionId }),
+  restorePromptVersion: (promptId: string, versionId: string) =>
+    ipc<PromptVersionSummary>("restore_prompt_version", { promptId, versionId }),
 };
 
 export function statusLabel(status: ConnectionWidgetState["status"]): string {

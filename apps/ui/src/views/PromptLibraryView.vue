@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import {
   api,
   type PromptFolder,
@@ -11,14 +11,11 @@ import FolderIcon from "../components/library/FolderIcon.vue";
 import LibraryTreeNode, {
   type TreeRowKind,
 } from "../components/library/LibraryTreeNode.vue";
-import MoreMenuIcon from "../components/library/MoreMenuIcon.vue";
-import MoveIcon from "../components/library/MoveIcon.vue";
-import PlusIcon from "../components/library/PlusIcon.vue";
 import PromptAddIcon from "../components/library/PromptAddIcon.vue";
 import PromptFavoriteIcon from "../components/library/PromptFavoriteIcon.vue";
 import PromptIcon from "../components/library/PromptIcon.vue";
 import StarFilterIcon from "../components/library/StarFilterIcon.vue";
-import TrashIcon from "../components/library/TrashIcon.vue";
+import PromptDetailPanel from "../components/prompts/PromptDetailPanel.vue";
 
 const ALL_NODE_ID = "all";
 const UNFILED_NODE_ID = "unfiled";
@@ -46,14 +43,9 @@ const newFolderParentId = ref<string | null>(null);
 const showMoveModal = ref(false);
 const moveTargetFolderId = ref<string | null>(null);
 const showDeleteConfirm = ref(false);
-const showDetailMenu = ref(false);
-const showTagPicker = ref(false);
-const tagSearchQuery = ref("");
-const detailMenuAnchorRef = ref<HTMLElement | null>(null);
-const tagPickerAnchorRef = ref<HTMLElement | null>(null);
-const tagSearchInputRef = ref<HTMLInputElement | null>(null);
 const showTagFilterMenu = ref(false);
 const tagFilterAnchorRef = ref<HTMLElement | null>(null);
+const detailPanelRef = ref<InstanceType<typeof PromptDetailPanel> | null>(null);
 
 interface TreeRow {
   key: string;
@@ -120,29 +112,6 @@ const promptsByFolder = computed(() => {
 const selectedPrompt = computed(
   () => allPrompts.value.find((p) => p.id === selectedPromptId.value) ?? null,
 );
-
-const promptTagIds = computed(
-  () => new Set(selectedPrompt.value?.tags.map((t) => t.id) ?? []),
-);
-
-const filteredPickerTags = computed(() => {
-  const query = tagSearchQuery.value.trim().toLowerCase();
-  return tags.value
-    .filter((t) => !promptTagIds.value.has(t.id))
-    .filter((t) => !query || t.name.toLowerCase().includes(query))
-    .sort((a, b) => a.name.localeCompare(b.name));
-});
-
-const showCreateTagOption = computed(() => {
-  const name = tagSearchQuery.value.trim();
-  if (!name) return false;
-  const exact = tags.value.find((t) => t.name.toLowerCase() === name.toLowerCase());
-  if (exact && !promptTagIds.value.has(exact.id)) return false;
-  if (exact && promptTagIds.value.has(exact.id)) return false;
-  return true;
-});
-
-const createTagLabel = computed(() => `Create tag “${tagSearchQuery.value.trim()}”`);
 
 function countInFolder(folderId: string): number {
   return filteredPrompts.value.filter((p) => p.folder_id === folderId).length;
@@ -380,7 +349,6 @@ function ensureTreeExpandedForPrompt(promptId: string) {
 }
 
 function openMoveModal() {
-  closeDetailMenu();
   moveTargetFolderId.value = selectedPrompt.value?.folder_id ?? null;
   showMoveModal.value = true;
 }
@@ -390,15 +358,25 @@ function closeMoveModal() {
   moveTargetFolderId.value = null;
 }
 
-function openPromptDetail(promptId: string) {
-  closeTagPicker();
-  closeDetailMenu();
+async function openPromptDetail(promptId: string) {
+  if (
+    selectedPromptId.value &&
+    selectedPromptId.value !== promptId &&
+    detailPanelRef.value
+  ) {
+    const ok = await detailPanelRef.value.confirmLeaveIfDirty();
+    if (!ok) return;
+  }
   ensureTreeExpandedForPrompt(promptId);
   selectedPromptId.value = promptId;
   viewMode.value = "detail";
 }
 
-function selectFolderNav(key: string) {
+async function selectFolderNav(key: string) {
+  if (viewMode.value === "detail" && detailPanelRef.value) {
+    const ok = await detailPanelRef.value.confirmLeaveIfDirty();
+    if (!ok) return;
+  }
   ensureTreeExpandedForFolderKey(key);
   selectedNavKey.value = key;
   selectedPromptId.value = null;
@@ -420,44 +398,21 @@ function isFolderChildActive(item: FolderChildItem): boolean {
   return viewMode.value === "folder" && selectedNavKey.value === item.key;
 }
 
-function clearDetailSelection() {
-  closeTagPicker();
-  closeDetailMenu();
+async function clearDetailSelection() {
+  if (detailPanelRef.value) {
+    const ok = await detailPanelRef.value.confirmLeaveIfDirty();
+    if (!ok) return;
+  }
   selectedPromptId.value = null;
   viewMode.value = "idle";
 }
 
 function openDeleteConfirm() {
-  closeDetailMenu();
   showDeleteConfirm.value = true;
 }
 
 function closeDeleteConfirm() {
   showDeleteConfirm.value = false;
-}
-
-function resetTagPicker() {
-  tagSearchQuery.value = "";
-}
-
-function openTagPicker() {
-  resetTagPicker();
-  showTagPicker.value = true;
-  void nextTick(() => tagSearchInputRef.value?.focus());
-}
-
-function closeTagPicker() {
-  showTagPicker.value = false;
-  resetTagPicker();
-}
-
-function toggleTagPicker() {
-  if (showTagPicker.value) closeTagPicker();
-  else {
-    closeDetailMenu();
-    closeTagFilterMenu();
-    openTagPicker();
-  }
 }
 
 function closeTagFilterMenu() {
@@ -466,11 +421,7 @@ function closeTagFilterMenu() {
 
 function toggleTagFilterMenu() {
   if (showTagFilterMenu.value) closeTagFilterMenu();
-  else {
-    closeTagPicker();
-    closeDetailMenu();
-    showTagFilterMenu.value = true;
-  }
+  else showTagFilterMenu.value = true;
 }
 
 function isNavTagSelected(tagId: string) {
@@ -488,29 +439,8 @@ function clearNavTagFilters() {
   selectedTagIds.value = new Set();
 }
 
-function closeDetailMenu() {
-  showDetailMenu.value = false;
-}
-
-function toggleDetailMenu() {
-  if (showDetailMenu.value) closeDetailMenu();
-  else {
-    closeTagPicker();
-    closeTagFilterMenu();
-    showDetailMenu.value = true;
-  }
-}
-
 function onDocumentPointerDown(e: PointerEvent) {
   const target = e.target as Node;
-  if (showTagPicker.value) {
-    const anchor = tagPickerAnchorRef.value;
-    if (anchor && !anchor.contains(target)) closeTagPicker();
-  }
-  if (showDetailMenu.value) {
-    const anchor = detailMenuAnchorRef.value;
-    if (anchor && !anchor.contains(target)) closeDetailMenu();
-  }
   if (showTagFilterMenu.value) {
     const anchor = tagFilterAnchorRef.value;
     if (anchor && !anchor.contains(target)) closeTagFilterMenu();
@@ -546,10 +476,9 @@ function onEscapeKey(e: KeyboardEvent) {
   else if (showCreateFolder.value) closeCreateFolder();
   else if (showMoveModal.value) closeMoveModal();
   else if (showDeleteConfirm.value) closeDeleteConfirm();
-  else if (showDetailMenu.value) closeDetailMenu();
   else if (showTagFilterMenu.value) closeTagFilterMenu();
-  else if (showTagPicker.value) closeTagPicker();
-  else if (viewMode.value === "detail") clearDetailSelection();
+  else if (viewMode.value === "detail" && detailPanelRef.value?.handleEscape()) return;
+  else if (viewMode.value === "detail") void clearDetailSelection();
 }
 
 async function refresh() {
@@ -617,7 +546,7 @@ async function confirmTrashSelected() {
   try {
     await api.trashPrompt(selectedPromptId.value);
     closeDeleteConfirm();
-    clearDetailSelection();
+    await clearDetailSelection();
     await refresh();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -650,46 +579,6 @@ async function toggleFavorite() {
   }
 }
 
-async function addTagByName(tagName: string) {
-  if (!selectedPromptId.value || !tagName.trim()) return;
-  try {
-    await api.addPromptTag(selectedPromptId.value, tagName.trim());
-    closeTagPicker();
-    await refresh();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  }
-}
-
-async function selectTagFromPicker(tag: TagSummary) {
-  await addTagByName(tag.name);
-}
-
-async function createTagFromPicker() {
-  const name = tagSearchQuery.value.trim();
-  if (!name) return;
-  await addTagByName(name);
-}
-
-async function onTagSearchEnter() {
-  if (showCreateTagOption.value) {
-    await createTagFromPicker();
-    return;
-  }
-  const first = filteredPickerTags.value[0];
-  if (first) await selectTagFromPicker(first);
-}
-
-async function removeTag(tagId: string) {
-  if (!selectedPromptId.value) return;
-  try {
-    await api.removePromptTag(selectedPromptId.value, tagId);
-    await refresh();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  }
-}
-
 onMounted(async () => {
   window.addEventListener("keydown", onEscapeKey);
   document.addEventListener("pointerdown", onDocumentPointerDown);
@@ -700,11 +589,6 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener("keydown", onEscapeKey);
   document.removeEventListener("pointerdown", onDocumentPointerDown);
-});
-
-watch(selectedPromptId, () => {
-  closeTagPicker();
-  closeDetailMenu();
 });
 
 defineExpose({ refresh });
@@ -817,135 +701,18 @@ defineExpose({ refresh });
       </aside>
 
       <section class="main-panel">
-        <div
+        <PromptDetailPanel
           v-if="viewMode === 'detail' && selectedPrompt"
-          class="detail"
-          data-testid="prompt-detail"
-        >
-          <div class="detail-header">
-            <div class="detail-meta">
-              <h2>{{ selectedPrompt.title }}</h2>
-              <p class="location" data-testid="prompt-location">
-                {{ locationBreadcrumb.join(" / ") }}
-              </p>
-              <div class="tag-badges">
-                <span
-                  v-for="tag in selectedPrompt.tags"
-                  :key="tag.id"
-                  class="status-badge"
-                  data-testid="prompt-tag"
-                >
-                  {{ tag.name }}
-                  <button
-                    type="button"
-                    class="status-badge-remove"
-                    :aria-label="`Remove tag ${tag.name}`"
-                    @click="removeTag(tag.id)"
-                  >
-                    ×
-                  </button>
-                </span>
-                <span ref="tagPickerAnchorRef" class="tag-picker-anchor">
-                  <button
-                    type="button"
-                    class="status-badge status-badge-add"
-                    :class="{ active: showTagPicker }"
-                    aria-label="Add tag"
-                    title="Add tag"
-                    data-testid="add-tag"
-                    @click.stop="toggleTagPicker"
-                  >
-                    <PlusIcon />
-                  </button>
-                  <div v-if="showTagPicker" class="tag-picker" @click.stop>
-                    <input
-                      ref="tagSearchInputRef"
-                      v-model="tagSearchQuery"
-                      type="search"
-                      class="tag-picker-search"
-                      placeholder="Search tags…"
-                      data-testid="tag-search"
-                      @keydown.enter.prevent="onTagSearchEnter"
-                    />
-                    <ul v-if="filteredPickerTags.length" class="tag-picker-list">
-                      <li v-for="tag in filteredPickerTags" :key="tag.id">
-                        <button type="button" @click="selectTagFromPicker(tag)">
-                          {{ tag.name }}
-                        </button>
-                      </li>
-                    </ul>
-                    <p v-else-if="!showCreateTagOption" class="tag-picker-empty">
-                      No matching tags
-                    </p>
-                    <button
-                      v-if="showCreateTagOption"
-                      type="button"
-                      class="tag-picker-create"
-                      data-testid="create-tag"
-                      @click="createTagFromPicker"
-                    >
-                      {{ createTagLabel }}
-                    </button>
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="detail-toolbar">
-              <button
-                type="button"
-                class="icon-btn"
-                :class="{ active: selectedPrompt.is_favorite }"
-                data-testid="favorite-toggle"
-                :aria-label="selectedPrompt.is_favorite ? 'Unfavorite' : 'Favorite'"
-                :aria-pressed="selectedPrompt.is_favorite"
-                :title="selectedPrompt.is_favorite ? 'Unfavorite' : 'Favorite'"
-                @click="toggleFavorite"
-              >
-                <StarFilterIcon :active="selectedPrompt.is_favorite" />
-              </button>
-              <span ref="detailMenuAnchorRef" class="detail-menu-anchor">
-                <button
-                  type="button"
-                  class="icon-btn"
-                  aria-label="Prompt actions"
-                  title="Prompt actions"
-                  aria-haspopup="menu"
-                  :aria-expanded="showDetailMenu"
-                  @click.stop="toggleDetailMenu"
-                >
-                  <MoreMenuIcon />
-                </button>
-                <div
-                  v-if="showDetailMenu"
-                  class="detail-menu"
-                  role="menu"
-                  aria-label="Prompt actions"
-                  @click.stop
-                >
-                  <button
-                    type="button"
-                    class="detail-menu-item"
-                    role="menuitem"
-                    data-testid="move-prompt"
-                    @click="openMoveModal"
-                  >
-                    <MoveIcon />
-                    <span>Move to folder</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="detail-menu-item detail-menu-item-danger"
-                    role="menuitem"
-                    @click="openDeleteConfirm"
-                  >
-                    <TrashIcon />
-                    <span>Move to trash</span>
-                  </button>
-                </div>
-              </span>
-            </div>
-          </div>
-        </div>
+          ref="detailPanelRef"
+          :prompt="selectedPrompt"
+          :tags="tags"
+          :location-breadcrumb="locationBreadcrumb"
+          @refresh="refresh"
+          @error="error = $event"
+          @open-move="openMoveModal"
+          @open-delete="openDeleteConfirm"
+          @favorite-toggle="toggleFavorite"
+        />
 
         <div v-else-if="viewMode === 'folder'" class="folder-overview" data-testid="folder-overview">
           <h2>{{ folderOverviewTitle }}</h2>
@@ -1361,6 +1128,56 @@ defineExpose({ refresh });
 
 .detail-toolbar .icon-btn {
   padding: 0;
+}
+
+.text-toolbar-btn {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  padding: 0.35rem 0.625rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.text-toolbar-btn:hover,
+.text-toolbar-btn.active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+
+.prompt-content-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.prompt-content-editor .field-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.prompt-content-textarea {
+  width: 100%;
+  min-height: 12rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.content-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .detail-menu-anchor {

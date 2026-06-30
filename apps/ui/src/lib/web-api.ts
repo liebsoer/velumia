@@ -4,13 +4,16 @@ import type {
   LibraryCounts,
   ListPromptFilters,
   ProfileInput,
+  PromptContentSyntax,
   PromptFolder,
   PromptSummary,
+  PromptVersionSummary,
   TagSummary,
 } from "./ipc-types";
 
 const STORAGE_KEY = "velumia.web-dev.v1";
 const WEB_VERSION = "0.1.0-web";
+const MAX_CONTENT_LEN = 512 * 1024;
 
 interface StoredPrompt {
   id: string;
@@ -21,6 +24,16 @@ interface StoredPrompt {
   is_favorite: boolean;
   updated_at: string;
   trashed: boolean;
+  head_version_id: string | null;
+  content_syntax: PromptContentSyntax;
+}
+
+interface StoredPromptVersion {
+  id: string;
+  prompt_id: string;
+  version_number: number;
+  content: string;
+  created_at: string;
 }
 
 interface WebStore {
@@ -28,6 +41,7 @@ interface WebStore {
   profiles: LangdockProfile[];
   profileApiKeys: Record<string, string>;
   prompts: StoredPrompt[];
+  promptVersions: StoredPromptVersion[];
   folders: PromptFolder[];
   tags: TagSummary[];
 }
@@ -47,18 +61,28 @@ function slugFromId(prefix: string, id: string): string {
 function loadStore(): WebStore {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as WebStore;
+    if (raw) return normalizeStore(JSON.parse(raw) as WebStore);
   } catch {
     /* ignore corrupt storage */
   }
-  return {
+  return normalizeStore({
     wizardCompleted: false,
     profiles: [],
     profileApiKeys: {},
     prompts: [],
+    promptVersions: [],
     folders: [],
     tags: [],
-  };
+  });
+}
+
+function normalizeStore(store: WebStore): WebStore {
+  if (!store.promptVersions) store.promptVersions = [];
+  for (const prompt of store.prompts) {
+    if (prompt.head_version_id === undefined) prompt.head_version_id = null;
+    if (!prompt.content_syntax) prompt.content_syntax = "auto";
+  }
+  return store;
 }
 
 function saveStore(store: WebStore): void {
@@ -76,6 +100,7 @@ function toPromptSummary(store: WebStore, prompt: StoredPrompt): PromptSummary {
       .map((id) => tagMap.get(id))
       .filter((t): t is TagSummary => t !== undefined),
     is_favorite: prompt.is_favorite,
+    content_syntax: prompt.content_syntax ?? "auto",
     updated_at: prompt.updated_at,
   };
 }
@@ -88,6 +113,57 @@ function findPrompt(store: WebStore, promptId: string): StoredPrompt {
   const prompt = store.prompts.find((p) => p.id === promptId && !p.trashed);
   if (!prompt) throw new Error("prompt not found");
   return prompt;
+}
+
+function versionSummary(
+  store: WebStore,
+  version: StoredPromptVersion,
+): PromptVersionSummary {
+  const prompt = store.prompts.find((p) => p.id === version.prompt_id);
+  return {
+    id: version.id,
+    prompt_id: version.prompt_id,
+    version_number: version.version_number,
+    created_at: version.created_at,
+    is_head: prompt?.head_version_id === version.id,
+  };
+}
+
+function appendPromptVersion(
+  store: WebStore,
+  promptId: string,
+  content: string,
+): PromptVersionSummary {
+  const prompt = findPrompt(store, promptId);
+  const existing = store.promptVersions.filter((v) => v.prompt_id === promptId);
+  const nextNumber =
+    existing.length > 0
+      ? Math.max(...existing.map((v) => v.version_number)) + 1
+      : 1;
+  const id = newId();
+  const createdAt = nowIso();
+  const version: StoredPromptVersion = {
+    id,
+    prompt_id: promptId,
+    version_number: nextNumber,
+    content,
+    created_at: createdAt,
+  };
+  store.promptVersions.push(version);
+  prompt.head_version_id = id;
+  prompt.updated_at = createdAt;
+  return versionSummary(store, version);
+}
+
+function listVersionsForPrompt(
+  store: WebStore,
+  promptId: string,
+): PromptVersionSummary[] {
+  findPrompt(store, promptId);
+  return store.promptVersions
+    .filter((v) => v.prompt_id === promptId)
+    .sort((a, b) => b.version_number - a.version_number)
+    .map((v) => versionSummary(store, v));
 }
 
 function findOrCreateTag(store: WebStore, name: string): TagSummary {
@@ -268,8 +344,11 @@ export async function webInvoke<T>(
         is_favorite: false,
         updated_at: nowIso(),
         trashed: false,
+        head_version_id: null,
+        content_syntax: "auto",
       };
       store.prompts.push(prompt);
+      appendPromptVersion(store, id, "");
       saveStore(store);
       return id as T;
     }
@@ -287,6 +366,18 @@ export async function webInvoke<T>(
           throw new Error("folder not found");
         }
         prompt.folder_id = folderId;
+      }
+      if (args.contentSyntax !== undefined && args.contentSyntax !== null) {
+        const syntax = args.contentSyntax as PromptContentSyntax;
+        const allowed: PromptContentSyntax[] = [
+          "auto",
+          "plaintext",
+          "markdown",
+          "xml",
+          "json",
+        ];
+        if (!allowed.includes(syntax)) throw new Error("invalid content syntax");
+        prompt.content_syntax = syntax;
       }
       prompt.updated_at = nowIso();
       saveStore(store);
@@ -399,7 +490,10 @@ export async function webInvoke<T>(
         is_favorite: false,
         updated_at: nowIso(),
         trashed: false,
+        head_version_id: null,
+        content_syntax: "auto",
       });
+      appendPromptVersion(store, id, "");
       saveStore(store);
       return undefined as T;
     }
@@ -415,6 +509,56 @@ export async function webInvoke<T>(
 
     case "check_authorize":
       return { allowed: true } as T;
+
+    case "save_prompt_content": {
+      const promptId = args.promptId as string;
+      const content = args.content as string;
+      if (content.length > MAX_CONTENT_LEN) throw new Error("content too long");
+      const prompt = findPrompt(store, promptId);
+      if (prompt.head_version_id) {
+        const head = store.promptVersions.find((v) => v.id === prompt.head_version_id);
+        if (head && head.content === content) {
+          saveStore(store);
+          return versionSummary(store, head) as T;
+        }
+      }
+      const summary = appendPromptVersion(store, promptId, content);
+      saveStore(store);
+      return summary as T;
+    }
+
+    case "list_prompt_versions":
+      return listVersionsForPrompt(store, args.promptId as string) as T;
+
+    case "get_prompt_version_content": {
+      const versionId = args.versionId as string;
+      const version = store.promptVersions.find((v) => v.id === versionId);
+      if (!version) throw new Error("version not found");
+      findPrompt(store, version.prompt_id);
+      return version.content as T;
+    }
+
+    case "restore_prompt_version": {
+      const promptId = args.promptId as string;
+      const versionId = args.versionId as string;
+      const prompt = findPrompt(store, promptId);
+      const version = store.promptVersions.find(
+        (v) => v.id === versionId && v.prompt_id === promptId,
+      );
+      if (!version) throw new Error("version not found");
+      if (prompt.head_version_id === versionId) {
+        throw new Error("already current version");
+      }
+      if (prompt.head_version_id) {
+        const head = store.promptVersions.find((v) => v.id === prompt.head_version_id);
+        if (head && head.content === version.content) {
+          throw new Error("already current version");
+        }
+      }
+      const summary = appendPromptVersion(store, promptId, version.content);
+      saveStore(store);
+      return summary as T;
+    }
 
     default:
       throw new Error(`Unknown web command: ${cmd}`);
