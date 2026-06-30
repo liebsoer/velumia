@@ -24,18 +24,25 @@ Each sprint produces **two ChatPRD documents**, both **linked on the Linear issu
 
 ### Flow
 
-1. **SM** — create `.ai/velumia-sprints/LIE-NNN/` from `_templates/`
-2. **PO** — `create_document` sprint PRD in ChatPRD → link on Linear → sync down (`velumia-planning-chatprd-sync`, type `sprint-prd`)
-3. **PO + dev subagents** — refine **using sprint PRD as input**; log in `refinement.md` (max 5 rounds/topic)
-4. **PO** — merge refinement into sprint PRD → `update_document` in ChatPRD → sync down
-5. **PO + devs agree** on sprint PRD; PO records story points on Linear issue
-6. **Devs** — `create_document` Implementation Spec in ChatPRD using **only** [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (ChatPRD template name: **ChatPRD: Feature Implementation Spec**). Include sub-agent ownership + handoffs in Section 5 → link on Linear → sync down (type `implementation-spec`)
-7. **Planning gate** passes → SM moves Linear to **In Progress** → Implementation
+1. **SM** — create `.ai/velumia-sprints/LIE-NNN/` from `_templates/` (includes `retro-carryover.md`)
+2. **SM + PO + dev subagents** — **retro carry-over (first planning work; before anything else)**
+   - Read the prior completed sprint's `retro.md` (use Basic Memory **Velumia — Status** for sequence; path `.ai/velumia-sprints/LIE-*/retro.md`)
+   - For each action whose **Next sprint** column matches **LIE-NNN**, names this issue, says **Before LIE-NNN**, or is otherwise overdue — decide **how to integrate** (sprint PRD scope, refinement topic, Implementation Spec subtask, ceremony/process change, Linear hygiene, etc.)
+   - Record decisions in `retro-carryover.md` (integration + where it will appear)
+   - If SM + PO + devs **cannot agree** how to integrate within **5 rounds** on an action → **stop planning** and **ask the stakeholder**; log in `decisions.md` under **Stakeholder — retro carry-over** until closed
+   - Do **not** create the sprint PRD, refine, or sync ChatPRD until all due actions are **integrated** or **stakeholder-closed**
+3. **PO** — `create_document` sprint PRD in ChatPRD → link on Linear → sync down (`velumia-planning-chatprd-sync`, type `sprint-prd`). **Include integrated retro actions** in PRD body or link to `retro-carryover.md`
+4. **PO + dev subagents** — refine **using sprint PRD as input**; log in `refinement.md` (max 5 rounds/topic)
+5. **PO** — merge refinement into sprint PRD → `update_document` in ChatPRD → sync down
+6. **PO + devs agree** on sprint PRD; PO records story points on Linear issue
+7. **Devs** — `create_document` Implementation Spec in ChatPRD using **only** [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (ChatPRD template name: **ChatPRD: Feature Implementation Spec**). Include sub-agent ownership + handoffs in Section 5; **reflect integrated retro actions** where they affect implementation → link on Linear → sync down (type `implementation-spec`)
+8. **Planning gate** passes → SM moves Linear to **In Progress** → Implementation
 
 Do **not** start Implementation until Planning gate passes.
 
 ## Planning gate checklist
 
+- [ ] Prior sprint `retro.md` reviewed; due actions integrated or stakeholder-closed in `retro-carryover.md` + `decisions.md`
 - [ ] Sprint PRD created in ChatPRD **before** refinement; updated after refinement; synced to `sprint-prd.md`
 - [ ] Implementation Spec created in ChatPRD after PRD agreement from [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md); synced to `implementation-plan.md`
 - [ ] Both ChatPRD documents **linked on the Linear issue** (`save_issue` → `links`)
@@ -70,7 +77,7 @@ Do **not** start Implementation until Planning gate passes.
 
 - Linear issue ID
 - `velumia-pm/bdd/*.feature.md` scenario IDs listed in issue
-- Previous sprint `retro.md` actions if any
+- Prior completed sprint `retro.md` — **required** when present; drives step 2 retro carry-over
 
 ## Stop
 

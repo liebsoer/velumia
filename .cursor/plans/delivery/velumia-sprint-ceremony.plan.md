@@ -1,7 +1,7 @@
 # Velumia sprint ceremony (ChatPRD-first)
 
 **Applies to:** every V1 Feature sprint (`/sprint-start LIE-NNN`)  
-**Last update:** 2026-06-14
+**Last update:** 2026-06-30
 
 ## Principle
 
@@ -19,6 +19,8 @@ ChatPRD is the **authoring surface** for sprint planning artifacts. Local files 
 ```mermaid
 flowchart TD
   SM[SM: sprint folder from templates]
+  Retro["SM + PO + Devs: retro carry-over"]
+  Stakeholder{Undecided action?}
   PRDCreate["PO: create sprint PRD in ChatPRD"]
   LinearLink1[Link Sprint PRD on Linear]
   SyncDown1[Sync sprint-prd.md]
@@ -31,7 +33,12 @@ flowchart TD
   SyncImpl[Sync implementation-plan.md]
   Gate[Planning gate → In Progress]
 
-  SM --> PRDCreate --> LinearLink1 --> SyncDown1 --> Refine
+  SM --> Retro
+  Retro --> Stakeholder
+  Stakeholder -->|yes| StakeholderAsk[Ask stakeholder — decisions.md]
+  StakeholderAsk --> Retro
+  Stakeholder -->|no| PRDCreate
+  PRDCreate --> LinearLink1 --> SyncDown1 --> Refine
   Refine --> PRDUpdate --> SyncDown2 --> Agree
   Agree -->|yes| ImplCreate --> LinearLink2 --> SyncImpl --> Gate
   Agree -->|no| Refine
@@ -39,6 +46,7 @@ flowchart TD
 
 ## Planning gate
 
+- [ ] Prior sprint `retro.md` reviewed; due actions integrated or stakeholder-closed (`retro-carryover.md`)
 - [ ] Sprint PRD created before refinement; updated after refinement; synced locally
 - [ ] Implementation Spec created after PRD agreement from repo template `templates/chatprd/chatprd_feature-implementation-spec.tpl.md`; synced locally to `implementation-plan.md`
 - [ ] Both documents linked on Linear issue

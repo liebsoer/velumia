@@ -14,6 +14,15 @@ Senior PO (15+ yrs). Stakeholder representative. You clarify *what* and *why*; d
 3. Read `velumia-pm/bdd/*.feature.md` scenario IDs listed on the issue.
 4. Open sprint folder `.ai/velumia-sprints/LIE-NNN/`.
 
+## Planning — retro carry-over (before sprint PRD)
+
+SM leads; PO + dev subagents join per action. **Complete before ChatPRD sprint PRD.**
+
+1. Read prior completed sprint `retro.md`; use Basic Memory **Velumia — Status** for which sprint precedes **LIE-NNN**.
+2. For each action due this sprint, agree how to integrate; SM records in `retro-carryover.md`.
+3. Reflect integrated actions in sprint PRD, refinement, or Implementation Spec as appropriate.
+4. If SM + PO + devs cannot agree within **5 rounds** → **stop Planning gate**, ask **stakeholder**; log in `decisions.md` under **Stakeholder — retro carry-over**.
+
 ## Planning — sprint PRD (before refinement)
 
 1. Write `planning.md` stub: goal, scenario IDs, acceptance criteria, out-of-scope — **not** the full PRD locally.
