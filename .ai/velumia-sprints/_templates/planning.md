@@ -6,6 +6,12 @@
 **PO:**  
 **SM:**
 
+## Retro carry-over (complete before ChatPRD)
+
+**Source retro:**  
+**`retro-carryover.md` complete:** yes / no  
+**Stakeholder escalations closed:** yes / no / n/a  
+
 ## Goal
 
 ## Acceptance criteria (scenario IDs)
