@@ -46,3 +46,6 @@ apps/desktop/target/
 # Sprint working copies (templates tracked)
 .ai/velumia-sprints/LIE-*/
 !.ai/velumia-sprints/_templates/
+.cursor/hooks/state/basic-memory-sync.json
+.cursor/hooks/state/continual-learning-index.json
+.cursor/hooks/state/continual-learning.json
