@@ -1,6 +1,9 @@
 use crate::authz::{authorize, AuthzResult, Permission};
 use crate::langdock::{LangdockProfile, ProfileInput, ProfileService};
-use crate::prompts::{ListPromptFilters, PromptFolder, PromptService, PromptSummary, TagSummary};
+use crate::prompts::{
+    ListPromptFilters, PromptFolder, PromptService, PromptSummary, PromptVersionSummary,
+    TagSummary,
+};
 use crate::state::{principal, AppState};
 use serde::Deserialize;
 use tauri::State;
@@ -175,6 +178,7 @@ pub fn update_prompt(
     prompt_id: String,
     title: Option<String>,
     folder_id: Option<Option<String>>,
+    content_syntax: Option<String>,
 ) -> Result<PromptSummary, String> {
     state.with_db(|db| {
         PromptService::update(
@@ -182,6 +186,7 @@ pub fn update_prompt(
             &prompt_id,
             title.as_deref(),
             folder_id.as_ref().map(|f| f.as_deref()),
+            content_syntax.as_deref(),
         )
     })
 }
@@ -254,6 +259,40 @@ pub fn set_prompt_favorite(state: State<AppState>, prompt_id: String) -> Result<
 #[tauri::command]
 pub fn unset_prompt_favorite(state: State<AppState>, prompt_id: String) -> Result<(), String> {
     state.with_db(|db| PromptService::unset_favorite(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn save_prompt_content(
+    state: State<AppState>,
+    prompt_id: String,
+    content: String,
+) -> Result<PromptVersionSummary, String> {
+    state.with_db(|db| PromptService::save_prompt_content(db, &prompt_id, &content))
+}
+
+#[tauri::command]
+pub fn list_prompt_versions(
+    state: State<AppState>,
+    prompt_id: String,
+) -> Result<Vec<PromptVersionSummary>, String> {
+    state.with_db(|db| PromptService::list_prompt_versions(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn get_prompt_version_content(
+    state: State<AppState>,
+    version_id: String,
+) -> Result<String, String> {
+    state.with_db(|db| PromptService::get_prompt_version_content(db, &version_id))
+}
+
+#[tauri::command]
+pub fn restore_prompt_version(
+    state: State<AppState>,
+    prompt_id: String,
+    version_id: String,
+) -> Result<PromptVersionSummary, String> {
+    state.with_db(|db| PromptService::restore_prompt_version(db, &prompt_id, &version_id))
 }
 
 #[tauri::command]

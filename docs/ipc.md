@@ -20,7 +20,7 @@ Tauri 2 invoke commands exposed to the Vue frontend via `@tauri-apps/api/core`.
 | `list_prompts` | List active prompts; optional `folderId`, `tagId`, `favoritesOnly` filters |
 | `get_prompt` | Single prompt summary with tags and favorite flag |
 | `create_prompt` | Create prompt; optional `folderId`; requires `prompt:write` |
-| `update_prompt` | Update title and/or folder; requires `prompt:write` |
+| `update_prompt` | Update title, folder, and/or `contentSyntax`; requires `prompt:write` |
 | `trash_prompt` | Soft-delete prompt (`lifecycle_status = trashed`) |
 | `list_prompt_folders` | Flat folder list for tree UI |
 | `create_prompt_folder` | Create folder; optional `parentId` (max 2 levels) |
@@ -31,6 +31,10 @@ Tauri 2 invoke commands exposed to the Vue frontend via `@tauri-apps/api/core`.
 | `remove_prompt_tag` | Remove tag by id |
 | `set_prompt_favorite` | Star prompt |
 | `unset_prompt_favorite` | Unstar prompt |
+| `save_prompt_content` | Save prompt body; appends version when content changes; requires `prompt:write` |
+| `list_prompt_versions` | List linear versions for a prompt; requires `prompt:read` |
+| `get_prompt_version_content` | Fetch version body by version id; requires `prompt:read` |
+| `restore_prompt_version` | Copy version body as new head; requires `prompt:write` |
 | `can_run_prompt` | True when LangDock connected |
 | `seed_starter_samples` | Seed sample library content |
 | `library_counts` | Active entity counts |

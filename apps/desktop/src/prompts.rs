@@ -1,6 +1,7 @@
 use chrono::Utc;
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
+use std::fs;
 use uuid::Uuid;
 
 use crate::authz::{authorize, AuthzResult, Permission};
@@ -9,6 +10,7 @@ use crate::state::principal;
 
 const MAX_TITLE_LEN: usize = 200;
 const MAX_TAG_LEN: usize = 64;
+const MAX_CONTENT_LEN: usize = 512 * 1024;
 const ENTITY_TYPE_PROMPT: &str = "prompt";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,6 +27,7 @@ pub struct PromptSummary {
     pub folder_id: Option<String>,
     pub tags: Vec<TagSummary>,
     pub is_favorite: bool,
+    pub content_syntax: String,
     pub updated_at: String,
 }
 
@@ -41,6 +44,15 @@ pub struct ListPromptFilters {
     pub folder_id: Option<String>,
     pub tag_id: Option<String>,
     pub favorites_only: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptVersionSummary {
+    pub id: String,
+    pub prompt_id: String,
+    pub version_number: i64,
+    pub created_at: String,
+    pub is_head: bool,
 }
 
 pub struct PromptService;
@@ -73,6 +85,13 @@ impl PromptService {
         Ok(t)
     }
 
+    fn validate_content_syntax(syntax: &str) -> Result<&str, String> {
+        match syntax {
+            "auto" | "plaintext" | "markdown" | "xml" | "json" => Ok(syntax),
+            _ => Err("invalid content syntax".into()),
+        }
+    }
+
     fn validate_tag_name(name: &str) -> Result<&str, String> {
         let n = name.trim();
         if n.is_empty() {
@@ -95,7 +114,7 @@ impl PromptService {
         let favorites_only = filters.favorites_only.unwrap_or(false);
 
         let mut sql = String::from(
-            "SELECT p.id, p.title, p.slug, p.folder_id, p.updated_at,
+            "SELECT p.id, p.title, p.slug, p.folder_id, p.content_syntax, p.updated_at,
                     CASE WHEN f.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorite
              FROM prompts p
              LEFT JOIN favorites f ON f.entity_type = ?1 AND f.entity_id = p.id AND f.user_id = ?2
@@ -129,7 +148,8 @@ impl PromptService {
                         r.get::<_, String>(2)?,
                         r.get::<_, Option<String>>(3)?,
                         r.get::<_, String>(4)?,
-                        r.get::<_, i64>(5)? != 0,
+                        r.get::<_, String>(5)?,
+                        r.get::<_, i64>(6)? != 0,
                     ))
                 },
             )
@@ -137,7 +157,8 @@ impl PromptService {
 
         let mut prompts = Vec::new();
         for row in rows {
-            let (id, title, slug, folder_id, updated_at, is_favorite) = row.map_err(|e| e.to_string())?;
+            let (id, title, slug, folder_id, content_syntax, updated_at, is_favorite) =
+                row.map_err(|e| e.to_string())?;
             prompts.push(PromptSummary {
                 id: id.clone(),
                 title,
@@ -145,6 +166,7 @@ impl PromptService {
                 folder_id,
                 tags: Self::tags_for_prompt(db, &id)?,
                 is_favorite,
+                content_syntax,
                 updated_at,
             });
         }
@@ -158,7 +180,7 @@ impl PromptService {
         let row = db
             .conn
             .query_row(
-                "SELECT p.id, p.title, p.slug, p.folder_id, p.updated_at,
+                "SELECT p.id, p.title, p.slug, p.folder_id, p.content_syntax, p.updated_at,
                         CASE WHEN f.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorite
                  FROM prompts p
                  LEFT JOIN favorites f ON f.entity_type = ?1 AND f.entity_id = p.id AND f.user_id = ?2
@@ -171,7 +193,8 @@ impl PromptService {
                         r.get::<_, String>(2)?,
                         r.get::<_, Option<String>>(3)?,
                         r.get::<_, String>(4)?,
-                        r.get::<_, i64>(5)? != 0,
+                        r.get::<_, String>(5)?,
+                        r.get::<_, i64>(6)? != 0,
                     ))
                 },
             )
@@ -183,8 +206,9 @@ impl PromptService {
             slug: row.2,
             folder_id: row.3,
             tags: Self::tags_for_prompt(db, &row.0)?,
-            is_favorite: row.5,
-            updated_at: row.4,
+            is_favorite: row.6,
+            content_syntax: row.4,
+            updated_at: row.5,
         })
     }
 
@@ -213,6 +237,8 @@ impl PromptService {
             )
             .map_err(|e| e.to_string())?;
 
+        Self::append_version_internal(db, &id, &slug, "")?;
+
         Ok(id)
     }
 
@@ -221,6 +247,7 @@ impl PromptService {
         prompt_id: &str,
         title: Option<&str>,
         folder_id: Option<Option<&str>>,
+        content_syntax: Option<&str>,
     ) -> Result<PromptSummary, String> {
         Self::require_write(db)?;
         let owner_id = Self::owner_id(db)?;
@@ -246,6 +273,16 @@ impl PromptService {
                 .execute(
                     "UPDATE prompts SET folder_id = ?1, updated_at = ?2 WHERE id = ?3",
                     params![fid, now, prompt_id],
+                )
+                .map_err(|e| e.to_string())?;
+        }
+
+        if let Some(syntax) = content_syntax {
+            let syntax = Self::validate_content_syntax(syntax)?;
+            db.conn
+                .execute(
+                    "UPDATE prompts SET content_syntax = ?1, updated_at = ?2 WHERE id = ?3",
+                    params![syntax, now, prompt_id],
                 )
                 .map_err(|e| e.to_string())?;
         }
@@ -349,7 +386,7 @@ impl PromptService {
         prompt_id: &str,
         folder_id: Option<&str>,
     ) -> Result<PromptSummary, String> {
-        Self::update(db, prompt_id, None, Some(folder_id))
+        Self::update(db, prompt_id, None, Some(folder_id), None)
     }
 
     pub fn list_tags(db: &AppDatabase) -> Result<Vec<TagSummary>, String> {
@@ -533,5 +570,261 @@ impl PromptService {
             .optional()
             .map_err(|e| e.to_string())?
             .ok_or_else(|| "folder not found".to_string())
+    }
+
+    fn validate_content(content: &str) -> Result<(), String> {
+        if content.len() > MAX_CONTENT_LEN {
+            return Err(format!(
+                "content must be at most {MAX_CONTENT_LEN} characters"
+            ));
+        }
+        Ok(())
+    }
+
+    fn relative_content_path(slug: &str, version_number: i64) -> String {
+        format!("prompts/{slug}/versions/{version_number:04}.md")
+    }
+
+    fn write_content_file(db: &AppDatabase, relative_path: &str, content: &str) -> Result<(), String> {
+        let path = db.data_dir.join(relative_path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        fs::write(&path, content).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn read_content_file(db: &AppDatabase, relative_path: &str) -> Result<String, String> {
+        let path = db.data_dir.join(relative_path);
+        fs::read_to_string(&path).map_err(|_| "version content not found".to_string())
+    }
+
+    fn prompt_slug_and_head(
+        db: &AppDatabase,
+        owner_id: &str,
+        prompt_id: &str,
+    ) -> Result<(String, Option<String>), String> {
+        db.conn
+            .query_row(
+                "SELECT slug, head_version_id FROM prompts
+                 WHERE id = ?1 AND owner_id = ?2 AND lifecycle_status = 'active'",
+                params![prompt_id, owner_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .map_err(|_| "prompt not found".to_string())
+    }
+
+    fn next_version_number(db: &AppDatabase, prompt_id: &str) -> Result<i64, String> {
+        let max: Option<i64> = db
+            .conn
+            .query_row(
+                "SELECT MAX(version_number) FROM prompt_versions WHERE prompt_id = ?1",
+                params![prompt_id],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?
+            .flatten();
+        Ok(max.unwrap_or(0) + 1)
+    }
+
+    fn version_summary_by_id(
+        db: &AppDatabase,
+        prompt_id: &str,
+        version_id: &str,
+    ) -> Result<PromptVersionSummary, String> {
+        db.conn
+            .query_row(
+                "SELECT pv.id, pv.prompt_id, pv.version_number, pv.created_at,
+                        CASE WHEN pv.id = p.head_version_id THEN 1 ELSE 0 END
+                 FROM prompt_versions pv
+                 INNER JOIN prompts p ON p.id = pv.prompt_id
+                 WHERE pv.id = ?1 AND pv.prompt_id = ?2",
+                params![version_id, prompt_id],
+                |r| {
+                    Ok(PromptVersionSummary {
+                        id: r.get(0)?,
+                        prompt_id: r.get(1)?,
+                        version_number: r.get(2)?,
+                        created_at: r.get(3)?,
+                        is_head: r.get::<_, i64>(4)? != 0,
+                    })
+                },
+            )
+            .map_err(|_| "version not found".to_string())
+    }
+
+    fn append_version_internal(
+        db: &AppDatabase,
+        prompt_id: &str,
+        slug: &str,
+        content: &str,
+    ) -> Result<PromptVersionSummary, String> {
+        Self::validate_content(content)?;
+        let version_number = Self::next_version_number(db, prompt_id)?;
+        let relative_path = Self::relative_content_path(slug, version_number);
+        Self::write_content_file(db, &relative_path, content)?;
+
+        let version_id = Uuid::new_v4().to_string();
+        let now = Utc::now().to_rfc3339();
+
+        let tx = db.conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        tx.execute(
+            "INSERT INTO prompt_versions (id, prompt_id, version_number, content_path, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![version_id, prompt_id, version_number, relative_path, now],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "UPDATE prompts SET head_version_id = ?1, updated_at = ?2 WHERE id = ?3",
+            params![version_id, now, prompt_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+
+        Ok(PromptVersionSummary {
+            id: version_id,
+            prompt_id: prompt_id.to_string(),
+            version_number,
+            created_at: now,
+            is_head: true,
+        })
+    }
+
+    fn head_content(db: &AppDatabase, prompt_id: &str) -> Result<Option<String>, String> {
+        let head_id: Option<String> = db
+            .conn
+            .query_row(
+                "SELECT head_version_id FROM prompts WHERE id = ?1",
+                params![prompt_id],
+                |r| r.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+
+        let Some(hid) = head_id else {
+            return Ok(None);
+        };
+
+        let path: String = db
+            .conn
+            .query_row(
+                "SELECT content_path FROM prompt_versions WHERE id = ?1",
+                params![hid],
+                |r| r.get(0),
+            )
+            .map_err(|_| "version not found".to_string())?;
+
+        Ok(Some(Self::read_content_file(db, &path)?))
+    }
+
+    pub fn save_prompt_content(
+        db: &AppDatabase,
+        prompt_id: &str,
+        content: &str,
+    ) -> Result<PromptVersionSummary, String> {
+        Self::require_write(db)?;
+        let owner_id = Self::owner_id(db)?;
+        let (slug, head_id) = Self::prompt_slug_and_head(db, &owner_id, prompt_id)?;
+
+        if let Some(ref hid) = head_id {
+            let head_body = Self::head_content(db, prompt_id)?.unwrap_or_default();
+            if head_body == content {
+                return Self::version_summary_by_id(db, prompt_id, hid);
+            }
+        }
+
+        Self::append_version_internal(db, prompt_id, &slug, content)
+    }
+
+    pub fn list_prompt_versions(
+        db: &AppDatabase,
+        prompt_id: &str,
+    ) -> Result<Vec<PromptVersionSummary>, String> {
+        Self::require_read(db)?;
+        let owner_id = Self::owner_id(db)?;
+        Self::assert_prompt_owned(db, &owner_id, prompt_id)?;
+
+        let mut stmt = db
+            .conn
+            .prepare(
+                "SELECT pv.id, pv.prompt_id, pv.version_number, pv.created_at,
+                        CASE WHEN pv.id = p.head_version_id THEN 1 ELSE 0 END
+                 FROM prompt_versions pv
+                 INNER JOIN prompts p ON p.id = pv.prompt_id
+                 WHERE pv.prompt_id = ?1 AND p.owner_id = ?2
+                 ORDER BY pv.version_number DESC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let rows = stmt
+            .query_map(params![prompt_id, owner_id], |r| {
+                Ok(PromptVersionSummary {
+                    id: r.get(0)?,
+                    prompt_id: r.get(1)?,
+                    version_number: r.get(2)?,
+                    created_at: r.get(3)?,
+                    is_head: r.get::<_, i64>(4)? != 0,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    pub fn get_prompt_version_content(
+        db: &AppDatabase,
+        version_id: &str,
+    ) -> Result<String, String> {
+        Self::require_read(db)?;
+        let owner_id = Self::owner_id(db)?;
+
+        let path: String = db
+            .conn
+            .query_row(
+                "SELECT pv.content_path FROM prompt_versions pv
+                 INNER JOIN prompts p ON p.id = pv.prompt_id
+                 WHERE pv.id = ?1 AND p.owner_id = ?2 AND p.lifecycle_status = 'active'",
+                params![version_id, owner_id],
+                |r| r.get(0),
+            )
+            .map_err(|_| "version not found".to_string())?;
+
+        Self::read_content_file(db, &path)
+    }
+
+    pub fn restore_prompt_version(
+        db: &AppDatabase,
+        prompt_id: &str,
+        version_id: &str,
+    ) -> Result<PromptVersionSummary, String> {
+        Self::require_write(db)?;
+        let owner_id = Self::owner_id(db)?;
+        let (slug, _) = Self::prompt_slug_and_head(db, &owner_id, prompt_id)?;
+
+        let (scoped_prompt_id, content_path): (String, String) = db
+            .conn
+            .query_row(
+                "SELECT pv.prompt_id, pv.content_path FROM prompt_versions pv
+                 INNER JOIN prompts p ON p.id = pv.prompt_id
+                 WHERE pv.id = ?1 AND p.owner_id = ?2",
+                params![version_id, owner_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .map_err(|_| "version not found".to_string())?;
+
+        if scoped_prompt_id != prompt_id {
+            return Err("version not found".into());
+        }
+
+        let body = Self::read_content_file(db, &content_path)?;
+        if let Some(head_body) = Self::head_content(db, prompt_id)? {
+            if head_body == body {
+                return Err("already current version".into());
+            }
+        }
+
+        Self::append_version_internal(db, prompt_id, &slug, &body)
     }
 }

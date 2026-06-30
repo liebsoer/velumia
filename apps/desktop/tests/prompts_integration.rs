@@ -145,3 +145,121 @@ fn reject_empty_title() {
     let err = PromptService::create(&db, "   ", None).unwrap_err();
     assert!(err.contains("title"));
 }
+
+// PROMPT-01
+#[test]
+fn prompt_01_version_on_save() {
+    let db = temp_db();
+    let id = PromptService::create(&db, "Versioned", None).expect("create");
+    let versions = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(versions.len(), 1);
+    assert!(versions[0].is_head);
+
+    PromptService::save_prompt_content(&db, &id, "first body").expect("save");
+    let versions = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(versions.len(), 2);
+    assert!(versions.iter().filter(|v| v.is_head).count() == 1);
+
+    let v1_id = versions
+        .iter()
+        .find(|v| v.version_number == 1)
+        .expect("v1")
+        .id
+        .clone();
+    let v1_body = PromptService::get_prompt_version_content(&db, &v1_id).expect("v1 body");
+    assert_eq!(v1_body, "");
+
+    PromptService::save_prompt_content(&db, &id, "second body").expect("save");
+    let versions = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(versions.len(), 3);
+
+    // metadata-only edit does not bump version
+    PromptService::update(&db, &id, Some("Renamed"), None, None).expect("rename");
+    let after_rename = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(after_rename.len(), 3);
+
+    // unchanged content does not bump version
+    PromptService::save_prompt_content(&db, &id, "second body").expect("noop save");
+    let after_noop = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(after_noop.len(), 3);
+}
+
+// PROMPT-02
+#[test]
+fn prompt_02_version_list() {
+    let db = temp_db();
+    let id = PromptService::create(&db, "History", None).expect("create");
+    PromptService::save_prompt_content(&db, &id, "a").expect("save a");
+    PromptService::save_prompt_content(&db, &id, "b").expect("save b");
+
+    let versions = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(versions.len(), 3);
+    assert_eq!(versions.iter().filter(|v| v.is_head).count(), 1);
+    assert!(versions[0].is_head);
+    assert!(versions[0].version_number > versions[1].version_number);
+}
+
+// PROMPT-15
+#[test]
+fn prompt_15_diff_and_restore() {
+    let db = temp_db();
+    let id = PromptService::create(&db, "Restore me", None).expect("create");
+    PromptService::save_prompt_content(&db, &id, "original").expect("save");
+    PromptService::save_prompt_content(&db, &id, "updated").expect("save");
+
+    let versions = PromptService::list_prompt_versions(&db, &id).expect("list");
+    let v2 = versions
+        .iter()
+        .find(|v| v.version_number == 2)
+        .expect("v2");
+    let v2_body = PromptService::get_prompt_version_content(&db, &v2.id).expect("body");
+    assert_eq!(v2_body, "original");
+
+    let head_before = versions.iter().find(|v| v.is_head).expect("head");
+    let err = PromptService::restore_prompt_version(&db, &id, &head_before.id).unwrap_err();
+    assert!(err.contains("already current"));
+
+    let restored = PromptService::restore_prompt_version(&db, &id, &v2.id).expect("restore");
+    assert!(restored.is_head);
+    assert_eq!(restored.version_number, 4);
+
+    let all = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(all.len(), 4);
+    let head_body =
+        PromptService::get_prompt_version_content(&db, &restored.id).expect("head body");
+    assert_eq!(head_body, "original");
+}
+
+#[test]
+fn content_syntax_update_without_version_bump() {
+    let db = temp_db();
+    let id = PromptService::create(&db, "Syntax", None).expect("create");
+    PromptService::save_prompt_content(&db, &id, "hello").expect("save");
+    let before = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(before.len(), 2);
+
+    let updated = PromptService::update(&db, &id, None, None, Some("markdown")).expect("syntax");
+    assert_eq!(updated.content_syntax, "markdown");
+
+    let after = PromptService::list_prompt_versions(&db, &id).expect("list");
+    assert_eq!(after.len(), 2);
+}
+
+#[test]
+fn trashed_prompt_denies_version_access() {
+    let db = temp_db();
+    let id = PromptService::create(&db, "Trash me", None).expect("create");
+    PromptService::save_prompt_content(&db, &id, "body").expect("save");
+    let versions = PromptService::list_prompt_versions(&db, &id).expect("list");
+    let v1 = versions
+        .iter()
+        .find(|v| v.version_number == 1)
+        .expect("v1");
+
+    PromptService::trash(&db, &id).expect("trash");
+
+    assert!(PromptService::list_prompt_versions(&db, &id).is_err());
+    assert!(PromptService::get_prompt_version_content(&db, &v1.id).is_err());
+    assert!(PromptService::save_prompt_content(&db, &id, "new").is_err());
+    assert!(PromptService::restore_prompt_version(&db, &id, &v1.id).is_err());
+}

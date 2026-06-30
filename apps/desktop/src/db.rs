@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 use uuid::Uuid;
 
-pub const MIGRATION_VERSION: i64 = 1;
+pub const MIGRATION_VERSION: i64 = 2;
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -39,25 +39,36 @@ impl AppDatabase {
     }
 
     fn run_migrations(&self) -> Result<(), DbError> {
-        let version: Option<i64> = self
+        let mut version: i64 = self
             .conn
             .query_row(
                 "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1",
                 [],
                 |r| r.get(0),
             )
-            .ok();
+            .unwrap_or(0);
 
-        if version.unwrap_or(0) >= MIGRATION_VERSION {
-            return Ok(());
+        if version < 1 {
+            let sql = include_str!("../migrations/001_initial_schema.sql");
+            self.conn.execute_batch(sql)?;
+            self.record_migration(1)?;
+            version = 1;
         }
 
-        let sql = include_str!("../migrations/001_initial_schema.sql");
-        self.conn.execute_batch(sql)?;
+        if version < 2 {
+            let sql = include_str!("../migrations/002_prompt_content_syntax.sql");
+            self.conn.execute_batch(sql)?;
+            self.record_migration(2)?;
+        }
+
+        Ok(())
+    }
+
+    fn record_migration(&self, version: i64) -> Result<(), DbError> {
         let now = Utc::now().to_rfc3339();
         self.conn.execute(
             "INSERT OR REPLACE INTO schema_migrations (version, applied_at) VALUES (?1, ?2)",
-            params![MIGRATION_VERSION, now],
+            params![version, now],
         )?;
         Ok(())
     }
