@@ -29,3 +29,18 @@ Feature: Prompt library CRUD, folders, tags, favorites
   Scenario: List and filter library by folder tag and favorites
     When the prompt integration test "prompt_13_list_and_filter" runs
     Then the integration test passes
+
+  # PROMPT-01
+  Scenario: Version on save
+    When the prompt integration test "prompt_01_version_on_save" runs
+    Then the integration test passes
+
+  # PROMPT-02
+  Scenario: Version list and history
+    When the prompt integration test "prompt_02_version_list" runs
+    Then the integration test passes
+
+  # PROMPT-15
+  Scenario: Diff and restore as new head
+    When the prompt integration test "prompt_15_diff_and_restore" runs
+    Then the integration test passes
