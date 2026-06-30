@@ -470,7 +470,7 @@ function onTreeRowClick(row: TreeRow) {
   selectFolderNav(row.key);
 }
 
-function onEscapeKey(e: KeyboardEvent) {
+async function onEscapeKey(e: KeyboardEvent) {
   if (e.key !== "Escape") return;
   if (showCreatePrompt.value) closeCreatePrompt();
   else if (showCreateFolder.value) closeCreateFolder();
@@ -478,7 +478,7 @@ function onEscapeKey(e: KeyboardEvent) {
   else if (showDeleteConfirm.value) closeDeleteConfirm();
   else if (showTagFilterMenu.value) closeTagFilterMenu();
   else if (viewMode.value === "detail" && detailPanelRef.value?.handleEscape()) return;
-  else if (viewMode.value === "detail") void clearDetailSelection();
+  else if (viewMode.value === "detail") await clearDetailSelection();
 }
 
 async function refresh() {
@@ -495,7 +495,7 @@ async function refresh() {
       selectedPromptId.value &&
       !allPrompts.value.some((p) => p.id === selectedPromptId.value)
     ) {
-      clearDetailSelection();
+      await clearDetailSelection();
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
