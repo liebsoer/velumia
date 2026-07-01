@@ -3,6 +3,7 @@ mod commands;
 pub mod db;
 pub mod keychain;
 pub mod langdock;
+pub mod agents;
 pub mod prompts;
 pub mod prompt_runs;
 pub mod sessions;
@@ -73,6 +74,13 @@ pub fn run() {
             commands::list_prompt_sessions,
             commands::get_session_transcript,
             commands::delete_prompt_session,
+            commands::list_agents,
+            commands::get_agent,
+            commands::create_agent,
+            commands::update_agent,
+            commands::set_agent_prompts,
+            commands::set_agent_skills,
+            commands::set_agent_subagents,
             commands::seed_starter_samples,
             commands::library_counts,
         ])

@@ -45,6 +45,13 @@ Tauri 2 invoke commands exposed to the Vue frontend via `@tauri-apps/api/core`.
 | `list_prompt_sessions` | List sessions for a prompt; requires `prompt:read` |
 | `get_session_transcript` | Read session transcript lines; requires `prompt:read` |
 | `delete_prompt_session` | Delete session row and transcript file; requires `prompt:execute` |
+| `list_agents` | List agents; optional `lifecycleFilter` (`active` default); requires `agent:read` |
+| `get_agent` | Agent detail with instructions and attachments; requires `agent:read` |
+| `create_agent` | Create agent; returns id; requires `agent:write` |
+| `update_agent` | Update title, instructions, model, webSearch; requires `agent:write` |
+| `set_agent_prompts` | Replace ordered prompt attachments; requires `agent:write` |
+| `set_agent_skills` | Replace ordered skill attachments; requires `agent:write` |
+| `set_agent_subagents` | Replace one-level sub-agent links; requires `agent:write` |
 | `seed_starter_samples` | Seed sample library content |
 | `library_counts` | Active entity counts |
 

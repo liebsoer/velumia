@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 use uuid::Uuid;
 
-pub const MIGRATION_VERSION: i64 = 2;
+pub const MIGRATION_VERSION: i64 = 3;
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -59,6 +59,12 @@ impl AppDatabase {
             let sql = include_str!("../migrations/002_prompt_content_syntax.sql");
             self.conn.execute_batch(sql)?;
             self.record_migration(2)?;
+        }
+
+        if version < 3 {
+            let sql = include_str!("../migrations/003_agent_config.sql");
+            self.conn.execute_batch(sql)?;
+            self.record_migration(3)?;
         }
 
         Ok(())
