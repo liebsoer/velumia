@@ -19,41 +19,47 @@ ChatPRD is the **authoring surface** for sprint planning artifacts. Local files 
 ```mermaid
 flowchart TD
   SM[SM: sprint folder from templates]
-  Retro["SM + PO + Devs: retro carry-over"]
-  Stakeholder{Undecided action?}
-  PRDCreate["PO: create sprint PRD in ChatPRD"]
-  LinearLink1[Link Sprint PRD on Linear]
-  SyncDown1[Sync sprint-prd.md]
-  Refine["PO + Devs: refinement using PRD"]
-  PRDUpdate["PO: update sprint PRD in ChatPRD"]
-  SyncDown2[Re-sync sprint-prd.md]
-  Agree{PO + Devs agree?}
-  ImplCreate["Devs: create Implementation Spec in ChatPRD"]
-  LinearLink2[Link Implementation Spec on Linear]
-  SyncImpl[Sync implementation-plan.md]
-  Gate[Planning gate → In Progress]
+  Retro[retro carry-over]
+  SecCarry[security carry-over with stakeholder]
+  ArchCarry[architecture carry-over]
+  PRDCreate[PO: create sprint PRD in ChatPRD]
+  Refine[refinement incl arch sec impact]
+  PRDUpdate[PO: update sprint PRD]
+  ImplCreate[Devs: Implementation Spec]
+  SecPlan[security Planning review]
+  ArchPlan[architecture Planning review]
+  Gate[Planning gate to In Progress]
+  Impl[Implementation]
+  SecImpl[security Implementation review]
+  ArchImpl[architecture Implementation review]
+  QA[QA DoD checklist]
+  Review[In Review stakeholder demo]
 
-  SM --> Retro
-  Retro --> Stakeholder
-  Stakeholder -->|yes| StakeholderAsk[Ask stakeholder — decisions.md]
-  StakeholderAsk --> Retro
-  Stakeholder -->|no| PRDCreate
-  PRDCreate --> LinearLink1 --> SyncDown1 --> Refine
-  Refine --> PRDUpdate --> SyncDown2 --> Agree
-  Agree -->|yes| ImplCreate --> LinearLink2 --> SyncImpl --> Gate
-  Agree -->|no| Refine
+  SM --> Retro --> SecCarry --> ArchCarry --> PRDCreate --> Refine
+  Refine --> PRDUpdate --> ImplCreate --> SecPlan --> ArchPlan --> Gate
+  Gate --> Impl --> SecImpl --> ArchImpl --> QA --> Review
 ```
 
 ## Planning gate
 
 - [ ] Prior sprint `retro.md` reviewed; due actions integrated or stakeholder-closed (`retro-carryover.md`)
+- [ ] Open security findings dispositioned with stakeholder (`security-carryover.md`)
+- [ ] Open architecture findings integrated or stakeholder-closed (`architecture-carryover.md`)
 - [ ] Sprint PRD created before refinement; updated after refinement; synced locally
-- [ ] Implementation Spec created after PRD agreement from repo template `templates/chatprd/chatprd_feature-implementation-spec.tpl.md`; synced locally to `implementation-plan.md`
+- [ ] Refinement includes Architecture and security impact topic
+- [ ] Implementation Spec created after PRD agreement from repo template; includes § Architecture and security impact; synced locally
 - [ ] Both documents linked on Linear issue
 - [ ] Implementation Spec includes sub-agent ownership and handoffs
 - [ ] Story points on Linear issue
-- [ ] Security Planning review complete
+- [ ] Security Planning review complete (`security-review.md`)
+- [ ] Architecture Planning review complete (`architecture-review.md`)
 - [ ] ≤5 refinement rounds or stakeholder sign-off on escalations
+
+## Before Review gate
+
+- [ ] QA `dod-checklist.md` complete (security + architecture review items)
+- [ ] Security Implementation review complete (`security-review.md`)
+- [ ] Architecture Implementation review complete (`architecture-review.md`)
 
 ## Implementation
 
@@ -63,8 +69,12 @@ SM delegates per **Implementation Spec** sub-agent ownership. Handoffs must comp
 
 - Skill: `.cursor/skills/velumia-sprint-start/SKILL.md`
 - Skill: `.cursor/skills/velumia-planning-chatprd-sync/SKILL.md`
+- Skill: `.cursor/skills/velumia-security-review/SKILL.md`
+- Skill: `.cursor/skills/velumia-architecture-review/SKILL.md`
 - SM: `.cursor/agents/velumia-scrum-sm.md`
 - PO: `.cursor/agents/velumia-scrum-po.md`
+- Security: `.cursor/agents/velumia-dev-security.md`
+- Architect: `.cursor/agents/velumia-dev-architect.md`
 
 ## ChatPRD project
 

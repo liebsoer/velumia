@@ -16,35 +16,34 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 
 ## Planning ceremony (ChatPRD-first)
 
-1. Create `.ai/velumia-sprints/LIE-NNN/` — copy from `_templates/` (includes `retro-carryover.md`).
-2. **Retro carry-over (before any other planning work)** — SM facilitates with PO + dev subagents as needed:
-   - Read prior completed sprint `retro.md` (Basic Memory **Velumia — Status** for sequence)
-   - For each action due this sprint, agree **how to integrate**; record in `retro-carryover.md`
-   - Cannot agree within **5 rounds** on an action → **stop planning**, ask **stakeholder**; log in `decisions.md` **Stakeholder — retro carry-over**
-   - Gate: all due actions **integrated** or **stakeholder-closed** before sprint PRD
-3. Delegate to **velumia-scrum-po** to **create sprint PRD in ChatPRD before refinement** and link on Linear. Fold integrated retro actions into PRD or reference `retro-carryover.md`.
-4. Facilitate refinement in `refinement.md` — **track round count per topic (max 5)**; sprint PRD is the discussion input.
-5. Delegate to **velumia-scrum-po** to **update sprint PRD in ChatPRD** after refinement; sync locally.
-6. Confirm PO + dev **agreement** on updated sprint PRD; PO records story points on Linear.
-7. Delegate to **dev subagents** (backend, frontend, bdd, devops, langdock as needed) to **create Implementation Spec in ChatPRD**:
+1. Create `.ai/velumia-sprints/LIE-NNN/` — copy from `_templates/` (carry-over + review templates).
+2. **Retro carry-over** — SM + PO + devs; record `retro-carryover.md`; stakeholder escalation per 5-round rule.
+3. **Security carry-over** — SM + PO + **stakeholder**; open Critical/High from prior `security-review.md` → `security-carryover.md` (fix / waiver / defer).
+4. **Architecture carry-over** — SM + PO + devs; open findings from prior `architecture-review.md` → `architecture-carryover.md`; escalate to stakeholder if blocked.
+5. Delegate to **velumia-scrum-po** to **create sprint PRD in ChatPRD before refinement** and link on Linear.
+6. Facilitate refinement — **mandatory Architecture and security impact topic**; max 5 rounds per topic.
+7. Delegate to **velumia-scrum-po** to **update sprint PRD in ChatPRD** after refinement; sync locally.
+8. Confirm PO + dev agreement; PO records story points on Linear.
+9. Delegate **dev subagents** to **create Implementation Spec in ChatPRD** (§ Architecture and security impact required in Section 5):
    - **Mandatory template:** [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](../../templates/chatprd/chatprd_feature-implementation-spec.tpl.md) (ChatPRD name: **ChatPRD: Feature Implementation Spec**). Do not improvise structure; use all seven sections from the repo template.
    - Title: `Velumia — Implementation Spec — LIE-NNN — <short title>`
    - Section 5 must include: subtasks, **sub-agent ownership** (`velumia-dev-*`), **handoffs**, dependency order, **lib placement** per subtask (`libs/ui/*`, `libs/desktop/*`, or inline-in-app)
    - Link on Linear; sync via **velumia-planning-chatprd-sync** (`document_type: implementation-spec`)
-8. Delegate to **velumia-dev-security** for Planning section of `security-review.md`.
-9. **Planning gate** — all items in `velumia-sprint-start` checklist → move Linear to **In Progress** → Implementation.
+10. Delegate **velumia-dev-security** — `security-review.md` § Planning (skill **velumia-security-review**).
+11. Delegate **velumia-dev-architect** — `architecture-review.md` § Planning (skill **velumia-architecture-review**).
+12. **Planning gate** — all items in `velumia-sprint-start` checklist → move Linear to **In Progress** → Implementation.
 
 ## Implementation gate
 
 - Delegate subtasks per **ChatPRD Implementation Spec** ownership and handoffs.
 - Enforce handoffs before subagent marks subtasks done.
 - Track `decisions.md` rounds; escalate at round 6 per velumia-scrum-po.
-- Before Review: **velumia-dev-qa** completes `dod-checklist.md`; **velumia-dev-security** completes Implementation review.
+- Before Review: **velumia-dev-qa** completes `dod-checklist.md`; **velumia-dev-security** completes `security-review.md` § Implementation; **velumia-dev-architect** completes `architecture-review.md` § Implementation.
 
 ## Review prep
 
 - Move Linear to **In Review**.
-- **velumia-scrum-po** presents demo script, PR, scenarios, security summary, ChatPRD doc links.
+- **velumia-scrum-po** presents demo script, PR, scenarios, **security and architecture** summaries, ChatPRD doc links.
 
 ## Retrospective
 
@@ -59,5 +58,5 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 
 ## Reference
 
-- Skills: **velumia-nx-monorepo**, **velumia-dev-verify**, **velumia-sprint-start**, **velumia-planning-chatprd-sync**
+- Skills: **velumia-nx-monorepo**, **velumia-dev-verify**, **velumia-sprint-start**, **velumia-planning-chatprd-sync**, **velumia-security-review**, **velumia-architecture-review**
 - [`.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`](../plans/delivery/velumia-sprint-ceremony.plan.md)
