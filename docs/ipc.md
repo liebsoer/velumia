@@ -36,8 +36,23 @@ Tauri 2 invoke commands exposed to the Vue frontend via `@tauri-apps/api/core`.
 | `get_prompt_version_content` | Fetch version body by version id; requires `prompt:read` |
 | `restore_prompt_version` | Copy version body as new head; requires `prompt:write` |
 | `can_run_prompt` | True when LangDock connected |
+| `start_prompt_run` | Start new prompt run session; optional `userMessage`, `variables`, `allowEmptyVariables`; requires `prompt:execute` |
+| `send_prompt_message` | Send follow-up in existing session; streams assistant reply; requires `prompt:execute` |
+| `stop_prompt_run` | Abort in-flight stream for `{ promptId, sessionId, runId }`; requires `prompt:execute` |
+| `list_prompt_sessions` | List sessions for a prompt; requires `prompt:read` |
+| `get_session_transcript` | Read session transcript lines; requires `prompt:read` |
+| `delete_prompt_session` | Delete session row and transcript file; requires `prompt:execute` |
 | `seed_starter_samples` | Seed sample library content |
 | `library_counts` | Active entity counts |
+
+## Events (Tauri `listen`)
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `prompt-run-chunk` | `{ session_id, run_id, chunk, done }` | Streaming assistant text delta |
+| `prompt-run-done` | `{ session_id, run_id }` | Run completed successfully |
+| `prompt-run-error` | `{ session_id, run_id, message }` | Run failed (no secrets in message) |
+| `prompt-run-stopped` | `{ session_id, run_id }` | User stopped run; partial content retained |
 
 ## Security
 

@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::client::{ConnectivityOutcome, LangDockClient};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ConnectionStatus {
     NotConfigured,

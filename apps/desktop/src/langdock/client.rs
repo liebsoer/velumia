@@ -15,6 +15,10 @@ pub struct LangDockClient {
 }
 
 impl LangDockClient {
+    pub(crate) fn http_client(&self) -> &reqwest::Client {
+        &self.http
+    }
+
     pub fn new() -> Self {
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(15))

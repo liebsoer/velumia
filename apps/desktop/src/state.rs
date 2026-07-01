@@ -1,8 +1,11 @@
 use crate::db::AppDatabase;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+
+use crate::prompt_runs::RunRegistry;
 
 pub struct AppState {
-    pub db: Mutex<AppDatabase>,
+    pub db: Arc<Mutex<AppDatabase>>,
+    pub runs: RunRegistry,
 }
 
 impl AppState {

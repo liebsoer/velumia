@@ -794,6 +794,23 @@ impl PromptService {
         Self::read_content_file(db, &path)
     }
 
+    /// Frozen head instructions for prompt runs (active prompts only).
+    pub fn head_content_for_run(db: &AppDatabase, prompt_id: &str) -> Result<String, String> {
+        let owner_id = Self::owner_id(db)?;
+        db.conn
+            .query_row(
+                "SELECT 1 FROM prompts WHERE id = ?1 AND owner_id = ?2 AND lifecycle_status = 'active'",
+                params![prompt_id, owner_id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "prompt not found".to_string())?;
+
+        Self::head_content(db, prompt_id)?
+            .ok_or_else(|| "prompt has no content".to_string())
+    }
+
     pub fn restore_prompt_version(
         db: &AppDatabase,
         prompt_id: &str,
