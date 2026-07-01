@@ -1,3 +1,6 @@
+use crate::agents::{
+    AgentDetail, AgentService, AgentSummary, ListAgentFilters,
+};
 use crate::authz::{authorize, AuthzResult, Permission};
 use crate::langdock::{LangdockProfile, ProfileInput, ProfileService};
 use crate::prompt_runs::{
@@ -376,6 +379,79 @@ pub fn delete_prompt_session(
 }
 
 #[tauri::command]
+pub fn list_agents(
+    state: State<'_, Arc<AppState>>,
+    lifecycle_filter: Option<String>,
+) -> Result<Vec<AgentSummary>, String> {
+    state.with_db(|db| {
+        AgentService::list(
+            db,
+            ListAgentFilters {
+                lifecycle_filter,
+            },
+        )
+    })
+}
+
+#[tauri::command]
+pub fn get_agent(state: State<'_, Arc<AppState>>, agent_id: String) -> Result<AgentDetail, String> {
+    state.with_db(|db| AgentService::get(db, &agent_id))
+}
+
+#[tauri::command]
+pub fn create_agent(state: State<'_, Arc<AppState>>, title: String) -> Result<String, String> {
+    state.with_db(|db| AgentService::create(db, &title))
+}
+
+#[tauri::command]
+pub fn update_agent(
+    state: State<'_, Arc<AppState>>,
+    agent_id: String,
+    title: Option<String>,
+    instructions: Option<String>,
+    model: Option<String>,
+    web_search: Option<bool>,
+) -> Result<AgentDetail, String> {
+    state.with_db(|db| {
+        AgentService::update(
+            db,
+            &agent_id,
+            title.as_deref(),
+            instructions.as_deref(),
+            model.as_deref(),
+            web_search,
+        )
+    })
+}
+
+#[tauri::command]
+pub fn set_agent_prompts(
+    state: State<'_, Arc<AppState>>,
+    agent_id: String,
+    prompt_ids: Vec<String>,
+) -> Result<AgentDetail, String> {
+    state.with_db(|db| AgentService::set_prompts(db, &agent_id, &prompt_ids))
+}
+
+#[tauri::command]
+pub fn set_agent_skills(
+    state: State<'_, Arc<AppState>>,
+    agent_id: String,
+    skill_ids: Vec<String>,
+) -> Result<AgentDetail, String> {
+    state.with_db(|db| AgentService::set_skills(db, &agent_id, &skill_ids))
+}
+
+#[tauri::command]
+pub fn set_agent_subagents(
+    state: State<'_, Arc<AppState>>,
+    agent_id: String,
+    child_agent_ids: Vec<String>,
+) -> Result<AgentDetail, String> {
+    state.with_db(|db| AgentService::set_subagents(db, &agent_id, &child_agent_ids))
+}
+
+#[tauri::command]
 pub fn seed_starter_samples(state: State<'_, Arc<AppState>>) -> Result<(), String> {
     state.with_db(|db| {
         PromptService::create(db, "Sample prompt", None)?;
@@ -388,14 +464,7 @@ pub fn seed_starter_samples(state: State<'_, Arc<AppState>>) -> Result<(), Strin
 pub fn library_counts(state: State<'_, Arc<AppState>>) -> Result<LibraryCounts, String> {
     state.with_db(|db| {
         let prompts = PromptService::count_active(db)?;
-        let agents: i64 = db
-            .conn
-            .query_row(
-                "SELECT COUNT(*) FROM agents WHERE lifecycle_status = 'active'",
-                [],
-                |r| r.get(0),
-            )
-            .map_err(|e| e.to_string())?;
+        let agents = AgentService::count_active(db)?;
         let skills: i64 = db
             .conn
             .query_row(

@@ -11,6 +11,7 @@ use crate::db::AppDatabase;
 use crate::state::principal;
 
 pub const ENTITY_TYPE_PROMPT: &str = "prompt";
+pub const ENTITY_TYPE_AGENT: &str = "agent";
 pub const MAX_TRANSCRIPT_BYTES: usize = 4 * 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

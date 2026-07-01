@@ -60,6 +60,50 @@ export interface ListPromptFilters {
   lifecycleFilter?: PromptLifecycleStatus;
 }
 
+export interface AgentSummary {
+  id: string;
+  title: string;
+  slug: string;
+  lifecycle_status: string;
+  model: string;
+  updated_at: string;
+}
+
+export interface AgentPromptAttachment {
+  prompt_id: string;
+  title: string;
+  sort_order: number;
+}
+
+export interface AgentSkillAttachment {
+  skill_id: string;
+  title: string;
+  sort_order: number;
+}
+
+export interface AgentSubagentRef {
+  agent_id: string;
+  title: string;
+}
+
+export interface AgentDetail {
+  id: string;
+  title: string;
+  slug: string;
+  lifecycle_status: string;
+  model: string;
+  web_search: boolean;
+  updated_at: string;
+  instructions: string;
+  prompts: AgentPromptAttachment[];
+  skills: AgentSkillAttachment[];
+  subagents: AgentSubagentRef[];
+}
+
+export interface ListAgentFilters {
+  lifecycleFilter?: string;
+}
+
 export interface PromptVersionSummary {
   id: string;
   prompt_id: string;
