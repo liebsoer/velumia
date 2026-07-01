@@ -1,20 +1,19 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import {
-  api,
-  onPromptRunEvent,
-  PROMPT_RUN_EVENTS,
-  type PromptRunChunkPayload,
-  type PromptRunErrorPayload,
-  type PromptRunSessionPayload,
-  type SessionSummary,
-  type TranscriptLine,
-} from "../../lib/api";
-import PromptVariablesModal from "./PromptVariablesModal.vue";
+import type { RunPanelApi } from "./RunPanelApi";
+import type {
+  RunChunkPayload,
+  RunErrorPayload,
+  RunSessionPayload,
+  TranscriptLine,
+} from "./types";
+import { RUN_EVENTS } from "./types";
+import VariablesModal from "./VariablesModal.vue";
 
 const props = defineProps<{
-  promptId: string;
+  entityId: string;
   headContent: string;
+  runApi: RunPanelApi;
 }>();
 
 const emit = defineEmits<{
@@ -28,7 +27,7 @@ interface ChatBubble {
   streaming?: boolean;
 }
 
-const sessions = ref<SessionSummary[]>([]);
+const sessions = ref<Awaited<ReturnType<RunPanelApi["listSessions"]>>>([]);
 const selectedSessionId = ref<string>("");
 const writableSessionId = ref<string | null>(null);
 const bubbles = ref<ChatBubble[]>([]);
@@ -90,7 +89,7 @@ function transcriptToBubbles(lines: TranscriptLine[]): ChatBubble[] {
 
 async function loadSessions() {
   try {
-    sessions.value = await api.listPromptSessions(props.promptId);
+    sessions.value = await props.runApi.listSessions(props.entityId);
   } catch (e) {
     emit("error", e instanceof Error ? e.message : String(e));
   }
@@ -102,7 +101,7 @@ async function loadTranscript(sessionId: string) {
     return;
   }
   try {
-    const lines = await api.getSessionTranscript(props.promptId, sessionId);
+    const lines = await props.runApi.getSessionTranscript(props.entityId, sessionId);
     bubbles.value = transcriptToBubbles(lines);
     await scrollToEnd();
   } catch (e) {
@@ -111,7 +110,7 @@ async function loadTranscript(sessionId: string) {
 }
 
 async function refreshCanRun() {
-  canRun.value = await api.canRunPrompt();
+  canRun.value = await props.runApi.canRun();
 }
 
 async function scrollToEnd() {
@@ -135,7 +134,7 @@ function finalizeAssistantStream() {
   }
 }
 
-function onChunk(payload: PromptRunChunkPayload) {
+function onChunk(payload: RunChunkPayload) {
   if (payload.session_id !== writableSessionId.value) return;
   if (payload.run_id !== activeRunId.value) return;
   if (payload.chunk) appendAssistantChunk(payload.chunk);
@@ -143,7 +142,7 @@ function onChunk(payload: PromptRunChunkPayload) {
   void scrollToEnd();
 }
 
-function onDone(payload: PromptRunSessionPayload) {
+function onDone(payload: RunSessionPayload) {
   if (payload.session_id !== writableSessionId.value) return;
   if (payload.run_id !== activeRunId.value) return;
   isStreaming.value = false;
@@ -152,7 +151,7 @@ function onDone(payload: PromptRunSessionPayload) {
   void loadSessions();
 }
 
-function onRunError(payload: PromptRunErrorPayload) {
+function onRunError(payload: RunErrorPayload) {
   if (payload.session_id !== writableSessionId.value) return;
   if (payload.run_id !== activeRunId.value) return;
   runError.value = payload.message;
@@ -161,7 +160,7 @@ function onRunError(payload: PromptRunErrorPayload) {
   finalizeAssistantStream();
 }
 
-function onStopped(payload: PromptRunSessionPayload) {
+function onStopped(payload: RunSessionPayload) {
   if (payload.session_id !== writableSessionId.value) return;
   if (payload.run_id !== activeRunId.value) return;
   isStreaming.value = false;
@@ -172,10 +171,18 @@ function onStopped(payload: PromptRunSessionPayload) {
 }
 
 function setupEventListeners() {
-  unlisteners.push(onPromptRunEvent(PROMPT_RUN_EVENTS.chunk, onChunk));
-  unlisteners.push(onPromptRunEvent(PROMPT_RUN_EVENTS.done, onDone));
-  unlisteners.push(onPromptRunEvent(PROMPT_RUN_EVENTS.error, onRunError));
-  unlisteners.push(onPromptRunEvent(PROMPT_RUN_EVENTS.stopped, onStopped));
+  unlisteners.push(
+    props.runApi.onRunEvent(RUN_EVENTS.chunk, (p) => onChunk(p as RunChunkPayload)),
+  );
+  unlisteners.push(
+    props.runApi.onRunEvent(RUN_EVENTS.done, (p) => onDone(p as RunSessionPayload)),
+  );
+  unlisteners.push(
+    props.runApi.onRunEvent(RUN_EVENTS.error, (p) => onRunError(p as RunErrorPayload)),
+  );
+  unlisteners.push(
+    props.runApi.onRunEvent(RUN_EVENTS.stopped, (p) => onStopped(p as RunSessionPayload)),
+  );
 }
 
 function resetWritableState() {
@@ -209,11 +216,11 @@ async function executeRun(
 
   try {
     if (!writableSessionId.value) {
-      const result = await api.startPromptRun({
-        prompt_id: props.promptId,
-        user_message: userMessage || undefined,
+      const result = await props.runApi.startRun({
+        entityId: props.entityId,
+        userMessage: userMessage || undefined,
         variables: variables ?? undefined,
-        allow_empty_variables: allowEmptyVariables,
+        allowEmptyVariables,
       });
       writableSessionId.value = result.session_id;
       selectedSessionId.value = result.session_id;
@@ -222,8 +229,8 @@ async function executeRun(
         bubbles.value.push({ role: "user", content: userMessage });
       }
     } else {
-      const result = await api.sendPromptMessage({
-        prompt_id: props.promptId,
+      const result = await props.runApi.sendMessage({
+        entityId: props.entityId,
         session_id: writableSessionId.value,
         user_message: userMessage,
       });
@@ -283,8 +290,8 @@ function onAttemptRun() {
 async function onStop() {
   if (!writableSessionId.value || !activeRunId.value) return;
   try {
-    await api.stopPromptRun({
-      prompt_id: props.promptId,
+    await props.runApi.stopRun({
+      entityId: props.entityId,
       session_id: writableSessionId.value,
       run_id: activeRunId.value,
     });
@@ -303,7 +310,7 @@ async function confirmDeleteSession() {
   if (!sessionId) return;
   showDeleteConfirm.value = false;
   try {
-    await api.deletePromptSession(props.promptId, sessionId);
+    await props.runApi.deleteSession(props.entityId, sessionId);
     if (writableSessionId.value === sessionId) {
       resetWritableState();
     } else {
@@ -332,7 +339,7 @@ onUnmounted(() => {
 });
 
 watch(
-  () => props.promptId,
+  () => props.entityId,
   () => {
     resetWritableState();
     void refreshCanRun();
@@ -446,7 +453,7 @@ defineExpose({ confirmLeaveIfActive, onAttemptRun, isStreaming });
     </div>
     <p v-else class="read-only-hint">Viewing a past session (read-only).</p>
 
-    <PromptVariablesModal
+    <VariablesModal
       v-if="showVariablesModal"
       :placeholders="placeholders"
       @confirm="onVariablesConfirm"

@@ -6,11 +6,17 @@ import { resolve } from "node:path";
 const host = process.env.TAURI_DEV_HOST;
 
 const uiRoot = resolve(__dirname);
+const repoRoot = resolve(__dirname, "../..");
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   root: uiRoot,
   plugins: [vue()],
+  resolve: {
+    alias: {
+      "@velumia/ui-run-panel": resolve(repoRoot, "libs/ui/run-panel/src/index.ts"),
+    },
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

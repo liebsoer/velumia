@@ -13,8 +13,9 @@ import MoveIcon from "../library/MoveIcon.vue";
 import PlusIcon from "../library/PlusIcon.vue";
 import StarFilterIcon from "../library/StarFilterIcon.vue";
 import TrashIcon from "../library/TrashIcon.vue";
+import { RunPanel } from "@velumia/ui-run-panel";
+import { promptRunApi } from "../../lib/prompt-run-adapter";
 import PromptCodeEditor from "./PromptCodeEditor.vue";
-import PromptRunPanel from "./PromptRunPanel.vue";
 import PromptUnsavedChangesModal from "./PromptUnsavedChangesModal.vue";
 import PromptVersionHistoryPanel from "./PromptVersionHistoryPanel.vue";
 
@@ -47,7 +48,7 @@ const tagSearchInputRef = ref<HTMLInputElement | null>(null);
 const versionHistoryPanelRef = ref<InstanceType<typeof PromptVersionHistoryPanel> | null>(
   null,
 );
-const runPanelRef = ref<InstanceType<typeof PromptRunPanel> | null>(null);
+const runPanelRef = ref<InstanceType<typeof RunPanel> | null>(null);
 
 const editTitle = ref("");
 const savedTitle = ref("");
@@ -606,11 +607,12 @@ defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
       </div>
     </div>
 
-    <PromptRunPanel
+    <RunPanel
       v-if="showRunPanel"
       ref="runPanelRef"
-      :prompt-id="prompt.id"
+      :entity-id="prompt.id"
       :head-content="contentSaved"
+      :run-api="promptRunApi"
       @error="emit('error', $event)"
       @open-settings="emit('openSettings')"
     />

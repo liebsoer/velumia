@@ -1,0 +1,16 @@
+{
+  "name": "ui-run-panel",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/ui/run-panel/src",
+  "tags": ["scope:ui", "type:lib"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vue-tsc --noEmit -p libs/ui/run-panel/tsconfig.json",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}
