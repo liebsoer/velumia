@@ -19,8 +19,8 @@ Senior PO (15+ yrs). Stakeholder representative. You clarify *what* and *why*; d
 SM leads; PO + dev subagents join per action. **Complete before ChatPRD sprint PRD.**
 
 1. Read prior completed sprint `retro.md`; use Basic Memory **Velumia — Status** for which sprint precedes **LIE-NNN**.
-2. For each action due this sprint, agree how to integrate; SM records in `retro-carryover.md`.
-3. Reflect integrated actions in sprint PRD, refinement, or Implementation Spec as appropriate.
+2. For each action due this sprint, agree how to integrate; SM records in `retro-carryover.md` with **Category** and **Reflected in**.
+3. Reflect integrated actions in sprint PRD, refinement, Implementation Spec, or tooling files per **velumia-retro-tooling-sync** as appropriate.
 4. If SM + PO + devs cannot agree within **5 rounds** → **stop Planning gate**, ask **stakeholder**; log in `decisions.md` under **Stakeholder — retro carry-over**.
 
 ## Planning — security carry-over (before sprint PRD)

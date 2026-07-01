@@ -23,3 +23,5 @@ Read BM notes under `projects/velumia/` before opening `velumia-pm/` submodule.
 |------|------------|
 | Velumia — Sprint PRD — LIE-NNN | velumia-planning-chatprd-sync (per sprint) |
 | Velumia — Artifacts | sprint PRD uuid index |
+| Velumia — Team playbook | velumia-scrum-sm retrospective; § Tooling changes via velumia-retro-tooling-sync |
+| Velumia — Tooling changelog | sync-basic-memory when `.cursor/agents/`, `.cursor/skills/`, or `AGENTS.md` change; append commit subject + LIE-NNN retro ref from message body |

@@ -47,9 +47,22 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 
 ## Retrospective
 
-- After stakeholder accept: `retro.md` (Keep / Improve / max 3 actions).
-- Append to Basic Memory **Velumia — Team playbook**.
-- Update **Velumia — Status** (next recommended issue).
+After stakeholder accept:
+
+1. Write `retro.md` (Keep / Improve / max 3 actions with **Category** column).
+2. For each action, classify: `process` | `tooling` | `product` | `deferred`.
+3. For `tooling` actions — run skill **velumia-retro-tooling-sync**:
+   - Assign owner and target file(s) (`.cursor/agents/*`, `.cursor/skills/*`, `AGENTS.md`, ceremony plan).
+   - Apply edits **in the same session** or open a tracked chore; record **Commit ref** in retro sign-off.
+4. Append process learnings to Basic Memory **Velumia — Team playbook**; append tooling deltas under **§ Tooling changes**.
+5. Complete retro **Tooling sign-off** table (`Agent/skill files updated`, `AGENTS.md updated`, `Commit ref`).
+6. Update **Velumia — Status** (next recommended issue).
+7. **Do not** move Linear to **Done** while any `tooling` action lacks commit ref or explicit deferral in retro.
+
+## Implementation hygiene
+
+- Open feature branch `lie-NNN-*` before first implementation commit (even solo dogfood).
+- Open PR with `LIE-NNN` in title before Review; do not land feature work directly on `main`.
 
 ## Linear hygiene
 
@@ -58,5 +71,5 @@ Senior SM (15+ yrs). You orchestrate ceremonies; you do not write feature code.
 
 ## Reference
 
-- Skills: **velumia-nx-monorepo**, **velumia-dev-verify**, **velumia-sprint-start**, **velumia-planning-chatprd-sync**, **velumia-security-review**, **velumia-architecture-review**
+- Skills: **velumia-nx-monorepo**, **velumia-dev-verify**, **velumia-sprint-start**, **velumia-planning-chatprd-sync**, **velumia-security-review**, **velumia-architecture-review**, **velumia-retro-tooling-sync**
 - [`.cursor/plans/delivery/velumia-sprint-ceremony.plan.md`](../plans/delivery/velumia-sprint-ceremony.plan.md)
