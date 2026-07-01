@@ -44,6 +44,21 @@ Match tags to the Linear issue scenario set when verifying slice work.
 - Run full sprint verify on the PR branch before requesting Review.
 - Do not merge feature work directly to `main`.
 
+## UI scenario vitest (LIE-62 retro)
+
+Some Gherkin scenarios are UI-only (e.g. X-02 trash confirm). The BDD harness runs them via **vitest**, not `cargo test`:
+
+| Harness | Location | Example |
+|---------|----------|---------|
+| Rust integration | `e2e/bdd/steps/prompts.steps.ts` → `cargo test --test prompts_integration` | PROMPT-10, X-01 |
+| UI vitest | `PROMPT_UI_TESTS` in `prompts.steps.ts` → `pnpm exec vitest run --config apps/ui/vitest.config.ts` | `x_02_trash_requires_confirmation` |
+
+Add new UI-backed scenarios to `PROMPT_UI_TESTS` and a matching `*.test.ts` under `apps/ui/src/`.
+
+```bash
+pnpm exec vitest run --config apps/ui/vitest.config.ts apps/ui/src/views/prompt-library-trash-confirm.test.ts
+```
+
 ## Notes
 
 - Nx may serve cached results for unchanged projects (`[local cache]` in output).
