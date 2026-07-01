@@ -20,11 +20,16 @@ ChatPRD is the **authoring surface** for sprint planning artifacts. Local files 
 flowchart TD
   SM[SM: sprint folder from templates]
   Retro[retro carry-over]
+  RetroBlocked{Undecided after 5 rounds?}
+  RetroStake[Stakeholder retro — decisions.md]
   SecCarry[security carry-over with stakeholder]
   ArchCarry[architecture carry-over]
+  ArchBlocked{Undecided after 5 rounds?}
+  ArchStake[Stakeholder architecture — decisions.md]
   PRDCreate[PO: create sprint PRD in ChatPRD]
   Refine[refinement incl arch sec impact]
   PRDUpdate[PO: update sprint PRD]
+  Agree{PO and devs agree?}
   ImplCreate[Devs: Implementation Spec]
   SecPlan[security Planning review]
   ArchPlan[architecture Planning review]
@@ -35,8 +40,15 @@ flowchart TD
   QA[QA DoD checklist]
   Review[In Review stakeholder demo]
 
-  SM --> Retro --> SecCarry --> ArchCarry --> PRDCreate --> Refine
-  Refine --> PRDUpdate --> ImplCreate --> SecPlan --> ArchPlan --> Gate
+  SM --> Retro --> RetroBlocked
+  RetroBlocked -->|yes| RetroStake --> SecCarry
+  RetroBlocked -->|no| SecCarry
+  SecCarry --> ArchCarry --> ArchBlocked
+  ArchBlocked -->|yes| ArchStake --> PRDCreate
+  ArchBlocked -->|no| PRDCreate
+  PRDCreate --> Refine --> PRDUpdate --> Agree
+  Agree -->|no| Refine
+  Agree -->|yes| ImplCreate --> SecPlan --> ArchPlan --> Gate
   Gate --> Impl --> SecImpl --> ArchImpl --> QA --> Review
 ```
 
