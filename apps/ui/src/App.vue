@@ -4,9 +4,10 @@ import { api } from "./lib/api";
 import DashboardView from "./views/DashboardView.vue";
 import WizardView from "./views/WizardView.vue";
 import SettingsView from "./views/SettingsView.vue";
+import AgentLibraryView from "./views/AgentLibraryView.vue";
 import PromptLibraryView from "./views/PromptLibraryView.vue";
 
-type View = "wizard" | "dashboard" | "prompts" | "settings";
+type View = "wizard" | "dashboard" | "prompts" | "agents" | "settings";
 
 const view = ref<View>("dashboard");
 const showWizard = ref(false);
@@ -15,6 +16,8 @@ const startPromptCreate = ref(false);
 
 const dashboardRef = ref<InstanceType<typeof DashboardView> | null>(null);
 const promptsRef = ref<InstanceType<typeof PromptLibraryView> | null>(null);
+const agentsRef = ref<InstanceType<typeof AgentLibraryView> | null>(null);
+const startAgentCreate = ref(false);
 
 async function init() {
   version.value = await api.ping();
@@ -40,6 +43,12 @@ function backToDashboard() {
 function openPrompts(create = false) {
   startPromptCreate.value = create;
   view.value = "prompts";
+}
+
+async function onAgentsNav() {
+  startAgentCreate.value = false;
+  view.value = "agents";
+  await agentsRef.value?.refresh();
 }
 
 async function onPromptsNav() {
@@ -72,7 +81,14 @@ onMounted(init);
         >
           Prompts
         </button>
-        <button type="button" class="nav-item muted" disabled>Agents</button>
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ active: view === 'agents' }"
+          @click="onAgentsNav"
+        >
+          Agents
+        </button>
         <button type="button" class="nav-item muted" disabled>Skills</button>
         <button
           type="button"
@@ -99,7 +115,13 @@ onMounted(init);
       :start-create="startPromptCreate"
       @open-settings="openSettings"
     />
-    <div v-else class="settings-wrap">
+    <AgentLibraryView
+      v-else-if="view === 'agents'"
+      ref="agentsRef"
+      :start-create="startAgentCreate"
+      @open-settings="openSettings"
+    />
+    <div v-else-if="view === 'settings'" class="settings-wrap">
       <button type="button" class="back" @click="backToDashboard">← Dashboard</button>
       <SettingsView />
     </div>

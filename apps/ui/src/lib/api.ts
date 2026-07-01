@@ -3,9 +3,12 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { webInvoke, subscribePromptRunEvents } from "./web-api";
 
 export type {
+  AgentDetail,
+  AgentSummary,
   ConnectionWidgetState,
   LangdockProfile,
   LibraryCounts,
+  ListAgentFilters,
   ListPromptFilters,
   ProfileInput,
   PromptContentSyntax,
@@ -35,6 +38,9 @@ import type {
   PromptFolder,
   PromptSummary,
   PromptVersionSummary,
+  AgentDetail,
+  AgentSummary,
+  ListAgentFilters,
   SendPromptMessageInput,
   SessionSummary,
   StartPromptRunInput,
@@ -143,6 +149,34 @@ export const api = {
     ipc<TranscriptLine[]>("get_session_transcript", { promptId, sessionId }),
   deletePromptSession: (promptId: string, sessionId: string) =>
     ipc<void>("delete_prompt_session", { promptId, sessionId }),
+  listAgents: (filters: ListAgentFilters = {}) =>
+    ipc<AgentSummary[]>("list_agents", {
+      lifecycleFilter: filters.lifecycleFilter ?? null,
+    }),
+  getAgent: (agentId: string) => ipc<AgentDetail>("get_agent", { agentId }),
+  createAgent: (title: string) => ipc<string>("create_agent", { title }),
+  updateAgent: (
+    agentId: string,
+    options: {
+      title?: string;
+      instructions?: string;
+      model?: string;
+      webSearch?: boolean;
+    } = {},
+  ) => {
+    const args: Record<string, unknown> = { agentId };
+    if (options.title !== undefined) args.title = options.title;
+    if (options.instructions !== undefined) args.instructions = options.instructions;
+    if (options.model !== undefined) args.model = options.model;
+    if (options.webSearch !== undefined) args.webSearch = options.webSearch;
+    return ipc<AgentDetail>("update_agent", args);
+  },
+  setAgentPrompts: (agentId: string, promptIds: string[]) =>
+    ipc<AgentDetail>("set_agent_prompts", { agentId, promptIds }),
+  setAgentSkills: (agentId: string, skillIds: string[]) =>
+    ipc<AgentDetail>("set_agent_skills", { agentId, skillIds }),
+  setAgentSubagents: (agentId: string, childAgentIds: string[]) =>
+    ipc<AgentDetail>("set_agent_subagents", { agentId, childAgentIds }),
 };
 
 export function onPromptRunEvent<T>(

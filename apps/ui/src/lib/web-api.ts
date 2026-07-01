@@ -12,6 +12,8 @@ import type {
   StartPromptRunResult,
   TagSummary,
   TranscriptLine,
+  AgentDetail,
+  AgentSummary,
 } from "./ipc-types";
 import { PROMPT_RUN_EVENTS } from "./ipc-types";
 
@@ -55,6 +57,20 @@ interface StoredSession {
   transcript: TranscriptLine[];
 }
 
+interface StoredAgent {
+  id: string;
+  title: string;
+  slug: string;
+  lifecycle_status: "active" | "archived" | "trashed";
+  instructions: string;
+  model: string;
+  web_search: boolean;
+  prompt_ids: string[];
+  skill_ids: string[];
+  subagent_ids: string[];
+  updated_at: string;
+}
+
 interface WebStore {
   wizardCompleted: boolean;
   profiles: LangdockProfile[];
@@ -63,6 +79,7 @@ interface WebStore {
   folders: PromptFolder[];
   tags: TagSummary[];
   sessions: StoredSession[];
+  agents: StoredAgent[];
 }
 
 type PromptRunListener = (event: string, payload: unknown) => void;
@@ -157,12 +174,79 @@ function loadStore(): WebStore {
     folders: [],
     tags: [],
     sessions: [],
+    agents: [],
   });
+}
+
+function activeAgents(store: WebStore): StoredAgent[] {
+  return store.agents.filter((a) => a.lifecycle_status === "active");
+}
+
+function findAgent(store: WebStore, agentId: string): StoredAgent {
+  const agent = store.agents.find((a) => a.id === agentId);
+  if (!agent) throw new Error("agent not found");
+  return agent;
+}
+
+function toAgentSummary(agent: StoredAgent): AgentSummary {
+  return {
+    id: agent.id,
+    title: agent.title,
+    slug: agent.slug,
+    lifecycle_status: agent.lifecycle_status,
+    model: agent.model,
+    updated_at: agent.updated_at,
+  };
+}
+
+function toAgentDetail(store: WebStore, agent: StoredAgent): AgentDetail {
+  const promptMap = new Map(activePrompts(store).map((p) => [p.id, p]));
+  return {
+    id: agent.id,
+    title: agent.title,
+    slug: agent.slug,
+    lifecycle_status: agent.lifecycle_status,
+    model: agent.model,
+    web_search: agent.web_search,
+    updated_at: agent.updated_at,
+    instructions: agent.instructions,
+    prompts: agent.prompt_ids.map((promptId, sort_order) => ({
+      prompt_id: promptId,
+      title: promptMap.get(promptId)?.title ?? promptId,
+      sort_order,
+    })),
+    skills: agent.skill_ids.map((skill_id, sort_order) => ({
+      skill_id,
+      title: skill_id,
+      sort_order,
+    })),
+    subagents: agent.subagent_ids
+      .map((agentId) => store.agents.find((a) => a.id === agentId))
+      .filter((a): a is StoredAgent => a !== undefined)
+      .map((a) => ({ agent_id: a.id, title: a.title })),
+  };
+}
+
+function assertSubagentLinkable(store: WebStore, parentId: string, childId: string): void {
+  if (parentId === childId) throw new Error("agent cannot be its own sub-agent");
+  const child = findAgent(store, childId);
+  if (child.lifecycle_status !== "active") throw new Error("sub-agent must be active");
+  if (child.subagent_ids.length > 0) {
+    throw new Error("sub-agent cannot have its own sub-agents");
+  }
+  if (store.agents.some((a) => a.subagent_ids.includes(parentId))) {
+    throw new Error("agent that is a sub-agent cannot have sub-agents");
+  }
+  const otherParent = store.agents.find(
+    (a) => a.id !== parentId && a.subagent_ids.includes(childId),
+  );
+  if (otherParent) throw new Error("sub-agent is already linked to another agent");
 }
 
 function normalizeStore(store: WebStore): WebStore {
   if (!store.promptVersions) store.promptVersions = [];
   if (!store.sessions) store.sessions = [];
+  if (!store.agents) store.agents = [];
   for (const prompt of store.prompts) {
     if (!prompt.lifecycle_status) {
       prompt.lifecycle_status = prompt.trashed ? "trashed" : "active";
@@ -904,10 +988,105 @@ export async function webInvoke<T>(
     case "library_counts": {
       const counts: LibraryCounts = {
         prompts: activePrompts(store).length,
-        agents: 0,
+        agents: activeAgents(store).length,
         skills: 0,
       };
       return counts as T;
+    }
+
+    case "list_agents": {
+      requireWebAuthorize("agent:read");
+      const lifecycle = (args.lifecycleFilter as string | null) ?? "active";
+      const list = store.agents
+        .filter((a) => a.lifecycle_status === lifecycle)
+        .map(toAgentSummary);
+      return list as T;
+    }
+
+    case "get_agent": {
+      requireWebAuthorize("agent:read");
+      const agent = findAgent(store, args.agentId as string);
+      return toAgentDetail(store, agent) as T;
+    }
+
+    case "create_agent": {
+      requireWebAuthorize("agent:write");
+      const title = (args.title as string).trim();
+      if (!title) throw new Error("title is required");
+      const id = newId();
+      const agent: StoredAgent = {
+        id,
+        title,
+        slug: slugFromId("agent", id),
+        lifecycle_status: "active",
+        instructions: "",
+        model: "gpt-4o-mini",
+        web_search: false,
+        prompt_ids: [],
+        skill_ids: [],
+        subagent_ids: [],
+        updated_at: nowIso(),
+      };
+      store.agents.push(agent);
+      saveStore(store);
+      return id as T;
+    }
+
+    case "update_agent": {
+      requireWebAuthorize("agent:write");
+      const agent = findAgent(store, args.agentId as string);
+      if (args.title !== undefined) {
+        const title = (args.title as string).trim();
+        if (!title) throw new Error("title is required");
+        agent.title = title;
+      }
+      if (args.instructions !== undefined) agent.instructions = args.instructions as string;
+      if (args.model !== undefined) {
+        const model = (args.model as string).trim();
+        if (!model) throw new Error("model is required");
+        agent.model = model;
+      }
+      if (args.webSearch !== undefined) agent.web_search = args.webSearch as boolean;
+      agent.updated_at = nowIso();
+      saveStore(store);
+      return toAgentDetail(store, agent) as T;
+    }
+
+    case "set_agent_prompts": {
+      requireWebAuthorize("agent:write");
+      const agent = findAgent(store, args.agentId as string);
+      const promptIds = args.promptIds as string[];
+      for (const promptId of promptIds) {
+        if (!activePrompts(store).some((p) => p.id === promptId)) {
+          throw new Error("prompt not found");
+        }
+      }
+      agent.prompt_ids = [...promptIds];
+      agent.updated_at = nowIso();
+      saveStore(store);
+      return toAgentDetail(store, agent) as T;
+    }
+
+    case "set_agent_skills": {
+      requireWebAuthorize("agent:write");
+      const agent = findAgent(store, args.agentId as string);
+      agent.skill_ids = [...(args.skillIds as string[])];
+      agent.updated_at = nowIso();
+      saveStore(store);
+      return toAgentDetail(store, agent) as T;
+    }
+
+    case "set_agent_subagents": {
+      requireWebAuthorize("agent:write");
+      const agent = findAgent(store, args.agentId as string);
+      const childIds = args.childAgentIds as string[];
+      for (const childId of childIds) {
+        assertSubagentLinkable(store, agent.id, childId);
+      }
+      agent.subagent_ids = [...childIds];
+      agent.updated_at = nowIso();
+      saveStore(store);
+      return toAgentDetail(store, agent) as T;
     }
 
     case "check_authorize": {
