@@ -91,6 +91,15 @@ pub fn authorize(principal: &Principal, permission: Permission) -> AuthzResult {
         };
     }
 
+    if env::var("VELUMIA_AUTHZ_STUB_DENY_EXECUTE").ok().as_deref() == Some("1")
+        && permission == Permission::PromptExecute
+    {
+        return AuthzResult::Denied {
+            reason: "permission_denied".into(),
+            permission: permission.as_str().into(),
+        };
+    }
+
     if principal.user_id.is_empty() {
         return AuthzResult::Denied {
             reason: "permission_denied".into(),
@@ -104,8 +113,10 @@ pub fn authorize(principal: &Principal, permission: Permission) -> AuthzResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn owner_allowed_by_default() {
         let p = Principal {
             user_id: "user-1".into(),
@@ -117,6 +128,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn stub_deny_prompt_write() {
         unsafe { env::set_var("VELUMIA_AUTHZ_STUB_DENY", "1") };
         let p = Principal {
@@ -127,5 +139,19 @@ mod tests {
             AuthzResult::Denied { .. }
         ));
         unsafe { env::remove_var("VELUMIA_AUTHZ_STUB_DENY") };
+    }
+
+    #[test]
+    #[serial]
+    fn stub_deny_prompt_execute() {
+        unsafe { env::set_var("VELUMIA_AUTHZ_STUB_DENY_EXECUTE", "1") };
+        let p = Principal {
+            user_id: "user-1".into(),
+        };
+        assert!(matches!(
+            authorize(&p, Permission::PromptExecute),
+            AuthzResult::Denied { .. }
+        ));
+        unsafe { env::remove_var("VELUMIA_AUTHZ_STUB_DENY_EXECUTE") };
     }
 }

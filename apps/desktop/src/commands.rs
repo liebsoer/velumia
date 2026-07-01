@@ -151,6 +151,7 @@ pub fn list_prompts(
     folder_id: Option<String>,
     tag_id: Option<String>,
     favorites_only: Option<bool>,
+    lifecycle_filter: Option<String>,
 ) -> Result<Vec<PromptSummary>, String> {
     state.with_db(|db| {
         PromptService::list(
@@ -159,6 +160,7 @@ pub fn list_prompts(
                 folder_id,
                 tag_id,
                 favorites_only,
+                lifecycle_filter,
             },
         )
     })
@@ -200,6 +202,21 @@ pub fn update_prompt(
 #[tauri::command]
 pub fn trash_prompt(state: State<'_, Arc<AppState>>, prompt_id: String) -> Result<(), String> {
     state.with_db(|db| PromptService::trash(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn archive_prompt(state: State<'_, Arc<AppState>>, prompt_id: String) -> Result<(), String> {
+    state.with_db(|db| PromptService::archive(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn unarchive_prompt(state: State<'_, Arc<AppState>>, prompt_id: String) -> Result<(), String> {
+    state.with_db(|db| PromptService::unarchive(db, &prompt_id))
+}
+
+#[tauri::command]
+pub fn restore_prompt(state: State<'_, Arc<AppState>>, prompt_id: String) -> Result<(), String> {
+    state.with_db(|db| PromptService::restore_from_trash(db, &prompt_id))
 }
 
 #[tauri::command]

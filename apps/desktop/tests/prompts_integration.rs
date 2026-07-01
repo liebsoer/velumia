@@ -1,3 +1,6 @@
+//! Prompt library integration tests (PROMPT-*). Serial execution avoids env stub races.
+
+use serial_test::serial;
 use velumia_lib::db::AppDatabase;
 use velumia_lib::prompts::{ListPromptFilters, PromptService};
 
@@ -8,8 +11,35 @@ fn temp_db() -> AppDatabase {
     db
 }
 
+struct AuthzStubDenyWrite;
+
+impl Drop for AuthzStubDenyWrite {
+    fn drop(&mut self) {
+        unsafe { std::env::remove_var("VELUMIA_AUTHZ_STUB_DENY") };
+    }
+}
+
+fn authz_stub_deny_write() -> AuthzStubDenyWrite {
+    unsafe { std::env::set_var("VELUMIA_AUTHZ_STUB_DENY", "1") };
+    AuthzStubDenyWrite
+}
+
+struct AuthzStubDenyExecute;
+
+impl Drop for AuthzStubDenyExecute {
+    fn drop(&mut self) {
+        unsafe { std::env::remove_var("VELUMIA_AUTHZ_STUB_DENY_EXECUTE") };
+    }
+}
+
+fn authz_stub_deny_execute() -> AuthzStubDenyExecute {
+    unsafe { std::env::set_var("VELUMIA_AUTHZ_STUB_DENY_EXECUTE", "1") };
+    AuthzStubDenyExecute
+}
+
 // PROMPT-06
 #[test]
+#[serial]
 fn prompt_06_create_in_library() {
     let db = temp_db();
     let id = PromptService::create(&db, "Daily standup", None).expect("create");
@@ -19,6 +49,7 @@ fn prompt_06_create_in_library() {
 
 // PROMPT-07
 #[test]
+#[serial]
 fn prompt_07_folder_two_level_nesting() {
     let db = temp_db();
     let work = PromptService::create_folder(&db, "Work", None).expect("work");
@@ -43,6 +74,7 @@ fn prompt_07_folder_two_level_nesting() {
 
 // PROMPT-08
 #[test]
+#[serial]
 fn prompt_08_tag_prompts() {
     let db = temp_db();
     let id = PromptService::create(&db, "Tagged prompt", None).expect("create");
@@ -56,6 +88,7 @@ fn prompt_08_tag_prompts() {
 
 // PROMPT-09
 #[test]
+#[serial]
 fn prompt_09_favorite_unfavorite() {
     let db = temp_db();
     let id = PromptService::create(&db, "Star me", None).expect("create");
@@ -85,6 +118,7 @@ fn prompt_09_favorite_unfavorite() {
 
 // PROMPT-13
 #[test]
+#[serial]
 fn prompt_13_list_and_filter() {
     let db = temp_db();
     let folder = PromptService::create_folder(&db, "Filter folder", None).expect("folder");
@@ -131,6 +165,7 @@ fn prompt_13_list_and_filter() {
 }
 
 #[test]
+#[serial]
 fn trash_excluded_from_list() {
     let db = temp_db();
     let id = PromptService::create(&db, "To trash", None).expect("create");
@@ -140,6 +175,7 @@ fn trash_excluded_from_list() {
 }
 
 #[test]
+#[serial]
 fn reject_empty_title() {
     let db = temp_db();
     let err = PromptService::create(&db, "   ", None).unwrap_err();
@@ -148,6 +184,7 @@ fn reject_empty_title() {
 
 // PROMPT-01
 #[test]
+#[serial]
 fn prompt_01_version_on_save() {
     let db = temp_db();
     let id = PromptService::create(&db, "Versioned", None).expect("create");
@@ -186,6 +223,7 @@ fn prompt_01_version_on_save() {
 
 // PROMPT-02
 #[test]
+#[serial]
 fn prompt_02_version_list() {
     let db = temp_db();
     let id = PromptService::create(&db, "History", None).expect("create");
@@ -201,6 +239,7 @@ fn prompt_02_version_list() {
 
 // PROMPT-15
 #[test]
+#[serial]
 fn prompt_15_diff_and_restore() {
     let db = temp_db();
     let id = PromptService::create(&db, "Restore me", None).expect("create");
@@ -231,6 +270,7 @@ fn prompt_15_diff_and_restore() {
 }
 
 #[test]
+#[serial]
 fn content_syntax_update_without_version_bump() {
     let db = temp_db();
     let id = PromptService::create(&db, "Syntax", None).expect("create");
@@ -246,6 +286,7 @@ fn content_syntax_update_without_version_bump() {
 }
 
 #[test]
+#[serial]
 fn trashed_prompt_denies_version_access() {
     let db = temp_db();
     let id = PromptService::create(&db, "Trash me", None).expect("create");
@@ -262,4 +303,103 @@ fn trashed_prompt_denies_version_access() {
     assert!(PromptService::get_prompt_version_content(&db, &v1.id).is_err());
     assert!(PromptService::save_prompt_content(&db, &id, "new").is_err());
     assert!(PromptService::restore_prompt_version(&db, &id, &v1.id).is_err());
+}
+
+// PROMPT-10
+#[test]
+#[serial]
+fn prompt_10_archive_unarchive() {
+    let db = temp_db();
+    let id = PromptService::create(&db, "Archive me", None).expect("create");
+
+    PromptService::archive(&db, &id).expect("archive");
+    let archived = PromptService::list(
+        &db,
+        ListPromptFilters {
+            lifecycle_filter: Some("archived".into()),
+            ..Default::default()
+        },
+    )
+    .expect("list archived");
+    assert_eq!(archived.len(), 1);
+    assert_eq!(archived[0].lifecycle_status, "archived");
+
+    let active = PromptService::list(&db, ListPromptFilters::default()).expect("list active");
+    assert!(active.is_empty());
+
+    PromptService::unarchive(&db, &id).expect("unarchive");
+    let active_after = PromptService::list(&db, ListPromptFilters::default()).expect("list");
+    assert_eq!(active_after.len(), 1);
+    assert_eq!(active_after[0].lifecycle_status, "active");
+}
+
+// PROMPT-11
+#[test]
+#[serial]
+fn prompt_11_trash_restore() {
+    let db = temp_db();
+    let id = PromptService::create(&db, "Trash restore", None).expect("create");
+
+    PromptService::trash(&db, &id).expect("trash");
+    let trashed = PromptService::list(
+        &db,
+        ListPromptFilters {
+            lifecycle_filter: Some("trashed".into()),
+            ..Default::default()
+        },
+    )
+    .expect("list trashed");
+    assert_eq!(trashed.len(), 1);
+
+    PromptService::restore_from_trash(&db, &id).expect("restore");
+    let active = PromptService::list(&db, ListPromptFilters::default()).expect("list");
+    assert_eq!(active.len(), 1);
+    assert_eq!(active[0].lifecycle_status, "active");
+}
+
+// PROMPT-17
+#[test]
+#[serial]
+fn prompt_17_authz_deny_write() {
+    let _stub = authz_stub_deny_write();
+    let db = temp_db();
+    assert!(PromptService::create(&db, "Denied", None).is_err());
+}
+
+// PROMPT-18
+#[test]
+#[serial]
+fn prompt_18_authz_deny_execute() {
+    use velumia_lib::authz::{authorize, AuthzResult, Permission};
+    use velumia_lib::sessions::SessionService;
+    use velumia_lib::state::principal;
+
+    let _stub = authz_stub_deny_execute();
+    let db = temp_db();
+    let id = PromptService::create(&db, "Execute denied", None).expect("create");
+    let p = principal(&db).expect("principal");
+    assert!(matches!(
+        authorize(&p, Permission::PromptExecute),
+        AuthzResult::Denied { .. }
+    ));
+    assert!(SessionService::create(&db, &id, "instructions", "model").is_err());
+}
+
+// X-01
+#[test]
+#[serial]
+fn x_01_durability_reopen_database() {
+    let dir = std::env::temp_dir().join(format!("velumia-dur-{}", uuid::Uuid::new_v4()));
+    let id = {
+        let db = AppDatabase::open(&dir).expect("open");
+        db.bootstrap_owner(None).expect("bootstrap");
+        let id = PromptService::create(&db, "Durable", None).expect("create");
+        PromptService::save_prompt_content(&db, &id, "persisted body").expect("save");
+        id
+    };
+    let db2 = AppDatabase::open(&dir).expect("reopen");
+    let prompt = PromptService::get(&db2, &id).expect("get");
+    assert_eq!(prompt.title, "Durable");
+    let body = PromptService::head_content_for_run(&db2, &id).expect("head");
+    assert_eq!(body, "persisted body");
 }
