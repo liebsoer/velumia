@@ -75,3 +75,33 @@ Feature: Prompt library CRUD, folders, tags, favorites
   Scenario: User deletes a completed prompt session
     When the prompt integration test "prompt_16_delete_session_removes_row_and_file" runs
     Then the integration test passes
+
+  # PROMPT-10 — Archive / unarchive
+  Scenario: Archive and unarchive a prompt
+    When the prompt integration test "prompt_10_archive_unarchive" runs
+    Then the integration test passes
+
+  # PROMPT-11 — Trash / restore
+  Scenario: Trash and restore a prompt
+    When the prompt integration test "prompt_11_trash_restore" runs
+    Then the integration test passes
+
+  # PROMPT-17 — Authz deny write
+  Scenario: Write operations denied when authz stub denies prompt write
+    When the prompt integration test "prompt_17_authz_deny_write" runs
+    Then the integration test passes
+
+  # PROMPT-18 — Authz deny execute
+  Scenario: Run denied when authz stub denies prompt execute
+    When the prompt integration test "prompt_18_authz_deny_execute" runs
+    Then the integration test passes
+
+  # X-01 — Durability
+  Scenario: Prompt library survives app restart
+    When the prompt integration test "x_01_durability_reopen_database" runs
+    Then the integration test passes
+
+  # X-02 — Irreversible actions (trash confirm)
+  Scenario: Trash requires confirmation
+    When the prompt integration test "x_02_trash_requires_confirmation" runs
+    Then the integration test passes

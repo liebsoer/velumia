@@ -20,8 +20,22 @@ const PROMPT_RUN_TESTS = new Set([
   "prompt_16_delete_session_removes_row_and_file",
 ]);
 
+/** Vitest UI tests under apps/ui/src */
+const PROMPT_UI_TESTS = new Set(["x_02_trash_requires_confirmation"]);
+
 function integrationTestFile(testName: string): string {
   return PROMPT_RUN_TESTS.has(testName) ? "prompt_runs_integration" : "prompts_integration";
+}
+
+function runUiTest(testName: string): void {
+  execSync(
+    `pnpm exec vitest run --config apps/ui/vitest.config.ts apps/ui/src/views/prompt-library-trash-confirm.test.ts -t ${testName}`,
+    {
+      cwd: repoRoot,
+      stdio: "pipe",
+      encoding: "utf8",
+    },
+  );
 }
 
 Given("the prompt library test harness is ready", function () {
@@ -30,13 +44,17 @@ Given("the prompt library test harness is ready", function () {
 
 When("the prompt integration test {string} runs", function (testName: string) {
   assert.ok(this.harnessReady);
-  const testFile = integrationTestFile(testName);
   try {
-    execSync(`cargo test --test ${testFile} ${testName} -- --exact`, {
-      cwd: desktopDir,
-      stdio: "pipe",
-      encoding: "utf8",
-    });
+    if (PROMPT_UI_TESTS.has(testName)) {
+      runUiTest(testName);
+    } else {
+      const testFile = integrationTestFile(testName);
+      execSync(`cargo test --test ${testFile} ${testName} -- --exact`, {
+        cwd: desktopDir,
+        stdio: "pipe",
+        encoding: "utf8",
+      });
+    }
     this.testPassed = true;
   } catch (err) {
     this.testPassed = false;
