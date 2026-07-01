@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import {
   api,
   type PromptFolder,
+  type PromptLifecycleStatus,
   type PromptSummary,
   type TagSummary,
 } from "../lib/api";
@@ -29,6 +30,7 @@ const folders = ref<PromptFolder[]>([]);
 const tags = ref<TagSummary[]>([]);
 const selectedTagIds = ref<Set<string>>(new Set());
 const favoritesOnly = ref(false);
+const lifecycleBucket = ref<PromptLifecycleStatus>("active");
 const selectedNavKey = ref<string>(ALL_NODE_ID);
 const selectedPromptId = ref<string | null>(null);
 const viewMode = ref<"idle" | "folder" | "detail">("idle");
@@ -169,6 +171,12 @@ function buildFolderRows(rows: TreeRow[], folder: PromptFolder, depth: number) {
 }
 
 const treeRows = computed(() => {
+  if (lifecycleBucket.value !== "active") {
+    return [...filteredPrompts.value]
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map((p) => promptRow(p, 0));
+  }
+
   const rows: TreeRow[] = [];
   const allEmpty = filteredPrompts.value.length === 0;
 
@@ -483,12 +491,21 @@ async function onEscapeKey(e: KeyboardEvent) {
   else if (viewMode.value === "detail") await clearDetailSelection();
 }
 
+async function setLifecycleBucket(bucket: PromptLifecycleStatus) {
+  if (lifecycleBucket.value === bucket) return;
+  lifecycleBucket.value = bucket;
+  favoritesOnly.value = false;
+  selectedTagIds.value = new Set();
+  await clearDetailSelection();
+  await refresh();
+}
+
 async function refresh() {
   loading.value = true;
   error.value = "";
   try {
     [allPrompts.value, folders.value, tags.value] = await Promise.all([
-      api.listPrompts({}),
+      api.listPrompts({ lifecycleFilter: lifecycleBucket.value }),
       api.listPromptFolders(),
       api.listTags(),
     ]);
@@ -605,7 +622,43 @@ defineExpose({ refresh });
       <aside class="library-nav">
         <h1 class="nav-title">Prompts</h1>
 
-        <div class="nav-toolbar">
+        <div class="lifecycle-tabs" role="tablist" aria-label="Prompt lifecycle">
+          <button
+            type="button"
+            role="tab"
+            class="lifecycle-tab"
+            :class="{ active: lifecycleBucket === 'active' }"
+            :aria-selected="lifecycleBucket === 'active'"
+            data-testid="lifecycle-tab-active"
+            @click="setLifecycleBucket('active')"
+          >
+            Active
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="lifecycle-tab"
+            :class="{ active: lifecycleBucket === 'archived' }"
+            :aria-selected="lifecycleBucket === 'archived'"
+            data-testid="lifecycle-tab-archived"
+            @click="setLifecycleBucket('archived')"
+          >
+            Archived
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="lifecycle-tab"
+            :class="{ active: lifecycleBucket === 'trashed' }"
+            :aria-selected="lifecycleBucket === 'trashed'"
+            data-testid="lifecycle-tab-trash"
+            @click="setLifecycleBucket('trashed')"
+          >
+            Trash
+          </button>
+        </div>
+
+        <div v-if="lifecycleBucket === 'active'" class="nav-toolbar">
           <button
             type="button"
             class="icon-btn"
@@ -816,13 +869,14 @@ defineExpose({ refresh });
       </div>
     </div>
 
-    <div v-if="showDeleteConfirm" class="modal-backdrop" @click.self="closeDeleteConfirm">
+    <div v-if="showDeleteConfirm" class="modal-backdrop" data-testid="trash-confirm-backdrop" @click.self="closeDeleteConfirm">
       <div
         class="modal"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="delete-title"
         aria-describedby="delete-desc"
+        data-testid="trash-confirm-dialog"
         @click.stop
       >
         <h3 id="delete-title" class="modal-title">Move to trash?</h3>
@@ -831,7 +885,7 @@ defineExpose({ refresh });
           from here.
         </p>
         <div class="actions">
-          <button type="button" @click="closeDeleteConfirm">Cancel</button>
+          <button type="button" data-testid="cancel-trash" @click="closeDeleteConfirm">Cancel</button>
           <button type="button" class="danger" data-testid="confirm-trash" @click="confirmTrashSelected">
             Move to trash
           </button>
@@ -906,8 +960,31 @@ defineExpose({ refresh });
 }
 
 .nav-title {
-  margin: 0;
-  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.lifecycle-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.lifecycle-tab {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.lifecycle-tab.active {
+  background: var(--color-accent-muted);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent);
 }
 
 .nav-toolbar {

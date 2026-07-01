@@ -6,6 +6,7 @@ import {
   type PromptSummary,
   type TagSummary,
 } from "../../lib/api";
+import { can } from "../../lib/authz";
 import { PROMPT_SYNTAX_OPTIONS } from "../../lib/prompt-syntax";
 import EditIcon from "../library/EditIcon.vue";
 import MoreMenuIcon from "../library/MoreMenuIcon.vue";
@@ -49,6 +50,20 @@ const versionHistoryPanelRef = ref<InstanceType<typeof PromptVersionHistoryPanel
   null,
 );
 const runPanelRef = ref<InstanceType<typeof RunPanel> | null>(null);
+
+const canWrite = ref(true);
+const canExecute = ref(true);
+
+const lifecycleStatus = computed(
+  () => props.prompt.lifecycle_status ?? "active",
+);
+const isArchivedOrTrashed = computed(
+  () => lifecycleStatus.value === "archived" || lifecycleStatus.value === "trashed",
+);
+const detailReadOnly = computed(() => isArchivedOrTrashed.value || !canWrite.value);
+const runAllowed = computed(
+  () => lifecycleStatus.value === "active" && canExecute.value,
+);
 
 const editTitle = ref("");
 const savedTitle = ref("");
@@ -130,6 +145,7 @@ async function loadPromptContent() {
 }
 
 function enterEditMode() {
+  if (detailReadOnly.value) return;
   closeDetailMenu();
   closeVersionHistory();
   closeRunPanel();
@@ -295,7 +311,43 @@ function closeVersionHistory() {
   showVersionHistory.value = false;
 }
 
+async function refreshAuthz() {
+  canWrite.value = await can("prompt:write");
+  canExecute.value = await can("prompt:execute");
+}
+
+async function onArchive() {
+  closeDetailMenu();
+  try {
+    await api.archivePrompt(props.prompt.id);
+    emit("refresh");
+  } catch (e) {
+    emit("error", e instanceof Error ? e.message : String(e));
+  }
+}
+
+async function onUnarchive() {
+  closeDetailMenu();
+  try {
+    await api.unarchivePrompt(props.prompt.id);
+    emit("refresh");
+  } catch (e) {
+    emit("error", e instanceof Error ? e.message : String(e));
+  }
+}
+
+async function onRestoreFromTrash() {
+  closeDetailMenu();
+  try {
+    await api.restorePrompt(props.prompt.id);
+    emit("refresh");
+  } catch (e) {
+    emit("error", e instanceof Error ? e.message : String(e));
+  }
+}
+
 async function toggleRunPanel() {
+  if (!runAllowed.value && !showRunPanel.value) return;
   closeDetailMenu();
   if (showRunPanel.value) {
     const ok = await runPanelRef.value?.confirmLeaveIfActive();
@@ -397,12 +449,14 @@ watch(
     closeDetailMenu();
     syncSnapshotsFromPrompt();
     void loadPromptContent();
+    void refreshAuthz();
   },
   { immediate: true },
 );
 
 onMounted(() => {
   document.addEventListener("pointerdown", onDocumentPointerDown);
+  void refreshAuthz();
 });
 
 onUnmounted(() => {
@@ -427,6 +481,7 @@ defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
             aria-label="Prompt title"
           />
           <button
+            v-if="!detailReadOnly"
             type="button"
             class="icon-btn edit-toggle"
             data-testid="prompt-edit-toggle"
@@ -438,6 +493,13 @@ defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
             <EditIcon />
           </button>
         </div>
+        <p v-if="isArchivedOrTrashed" class="lifecycle-hint" data-testid="prompt-lifecycle-readonly">
+          {{
+            lifecycleStatus === "archived"
+              ? "Archived — read-only"
+              : "In trash — read-only"
+          }}
+        </p>
         <p class="location" data-testid="prompt-location">
           {{ locationBreadcrumb.join(" / ") }}
         </p>
@@ -506,6 +568,8 @@ defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
           class="text-toolbar-btn"
           data-testid="prompt-run-toggle"
           :class="{ active: showRunPanel }"
+          :disabled="!runAllowed"
+          :title="runAllowed ? 'Run prompt' : 'Run not available'"
           @click="toggleRunPanel"
         >
           Run
@@ -551,6 +615,37 @@ defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
             @click.stop
           >
         <button
+          v-if="lifecycleStatus === 'active' && canWrite"
+          type="button"
+          class="detail-menu-item"
+          role="menuitem"
+          data-testid="archive-prompt"
+          @click="onArchive"
+        >
+              <span>Archive</span>
+            </button>
+        <button
+          v-if="lifecycleStatus === 'archived' && canWrite"
+          type="button"
+          class="detail-menu-item"
+          role="menuitem"
+          data-testid="unarchive-prompt"
+          @click="onUnarchive"
+        >
+              <span>Unarchive</span>
+            </button>
+        <button
+          v-if="lifecycleStatus === 'trashed' && canWrite"
+          type="button"
+          class="detail-menu-item"
+          role="menuitem"
+          data-testid="restore-prompt"
+          @click="onRestoreFromTrash"
+        >
+              <span>Restore from trash</span>
+            </button>
+        <button
+          v-if="canWrite && lifecycleStatus !== 'trashed'"
           type="button"
           class="detail-menu-item"
           role="menuitem"
@@ -561,6 +656,7 @@ defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
               <span>Move to folder</span>
             </button>
         <button
+          v-if="canWrite && lifecycleStatus !== 'trashed'"
           type="button"
           class="detail-menu-item detail-menu-item-danger"
           role="menuitem"
@@ -681,6 +777,12 @@ defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
 
 .edit-toggle.active {
   color: var(--color-accent);
+}
+
+.lifecycle-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
 }
 
 .location {

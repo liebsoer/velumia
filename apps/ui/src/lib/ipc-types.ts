@@ -32,6 +32,8 @@ export interface TagSummary {
 
 export type PromptContentSyntax = "auto" | "plaintext" | "markdown" | "xml" | "json";
 
+export type PromptLifecycleStatus = "active" | "archived" | "trashed";
+
 export interface PromptSummary {
   id: string;
   title: string;
@@ -41,6 +43,7 @@ export interface PromptSummary {
   is_favorite: boolean;
   content_syntax: PromptContentSyntax;
   updated_at: string;
+  lifecycle_status: PromptLifecycleStatus;
 }
 
 export interface PromptFolder {
@@ -54,6 +57,7 @@ export interface ListPromptFilters {
   folderId?: string | null;
   tagId?: string | null;
   favoritesOnly?: boolean;
+  lifecycleFilter?: PromptLifecycleStatus;
 }
 
 export interface PromptVersionSummary {

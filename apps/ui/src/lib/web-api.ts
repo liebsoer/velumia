@@ -18,6 +18,11 @@ import { PROMPT_RUN_EVENTS } from "./ipc-types";
 const STORAGE_KEY = "velumia.web-dev.v1";
 const WEB_VERSION = "0.1.0-web";
 const MAX_CONTENT_LEN = 512 * 1024;
+const MAX_TRANSCRIPT_BYTES = 4 * 1024 * 1024;
+/** Session-only; never persisted (S1 — web dev key storage). */
+const webProfileApiKeys = new Map<string, string>();
+const AUTHZ_STUB_DENY_WRITE_KEY = "VELUMIA_AUTHZ_STUB_DENY";
+const AUTHZ_STUB_DENY_EXECUTE_KEY = "VELUMIA_AUTHZ_STUB_DENY_EXECUTE";
 
 interface StoredPrompt {
   id: string;
@@ -28,6 +33,7 @@ interface StoredPrompt {
   is_favorite: boolean;
   updated_at: string;
   trashed: boolean;
+  lifecycle_status?: "active" | "archived" | "trashed";
   head_version_id: string | null;
   content_syntax: PromptContentSyntax;
 }
@@ -52,7 +58,6 @@ interface StoredSession {
 interface WebStore {
   wizardCompleted: boolean;
   profiles: LangdockProfile[];
-  profileApiKeys: Record<string, string>;
   prompts: StoredPrompt[];
   promptVersions: StoredPromptVersion[];
   folders: PromptFolder[];
@@ -97,17 +102,56 @@ function slugFromId(prefix: string, id: string): string {
   return `${prefix}-${id.slice(0, 8)}`;
 }
 
+type WebAuthzResult =
+  | { allowed: true }
+  | { allowed: false; reason: string; permission: string };
+
+function authzStubEnabled(key: string): boolean {
+  try {
+    return sessionStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function webAuthorize(action: string): WebAuthzResult {
+  if (authzStubEnabled(AUTHZ_STUB_DENY_WRITE_KEY) && action === "prompt:write") {
+    return { allowed: false, reason: "permission_denied", permission: action };
+  }
+  if (authzStubEnabled(AUTHZ_STUB_DENY_EXECUTE_KEY) && action === "prompt:execute") {
+    return { allowed: false, reason: "permission_denied", permission: action };
+  }
+  return { allowed: true };
+}
+
+function requireWebAuthorize(action: string): void {
+  const result = webAuthorize(action);
+  if (!result.allowed) {
+    throw new Error("permission denied");
+  }
+}
+
+function migrateLegacyStore(raw: Record<string, unknown>): WebStore {
+  const legacyKeys = raw.profileApiKeys;
+  if (legacyKeys && typeof legacyKeys === "object" && !Array.isArray(legacyKeys)) {
+    for (const [id, key] of Object.entries(legacyKeys as Record<string, string>)) {
+      if (key) webProfileApiKeys.set(id, key);
+    }
+    delete raw.profileApiKeys;
+  }
+  return normalizeStore(raw as unknown as WebStore);
+}
+
 function loadStore(): WebStore {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return normalizeStore(JSON.parse(raw) as WebStore);
+    if (raw) return migrateLegacyStore(JSON.parse(raw) as Record<string, unknown>);
   } catch {
     /* ignore corrupt storage */
   }
   return normalizeStore({
     wizardCompleted: false,
     profiles: [],
-    profileApiKeys: {},
     prompts: [],
     promptVersions: [],
     folders: [],
@@ -120,6 +164,9 @@ function normalizeStore(store: WebStore): WebStore {
   if (!store.promptVersions) store.promptVersions = [];
   if (!store.sessions) store.sessions = [];
   for (const prompt of store.prompts) {
+    if (!prompt.lifecycle_status) {
+      prompt.lifecycle_status = prompt.trashed ? "trashed" : "active";
+    }
     if (prompt.head_version_id === undefined) prompt.head_version_id = null;
     if (!prompt.content_syntax) prompt.content_syntax = "auto";
   }
@@ -143,17 +190,39 @@ function toPromptSummary(store: WebStore, prompt: StoredPrompt): PromptSummary {
     is_favorite: prompt.is_favorite,
     content_syntax: prompt.content_syntax ?? "auto",
     updated_at: prompt.updated_at,
+    lifecycle_status: prompt.lifecycle_status ?? (prompt.trashed ? "trashed" : "active"),
   };
 }
 
+function promptsWithLifecycle(
+  store: WebStore,
+  lifecycle: "active" | "archived" | "trashed",
+): StoredPrompt[] {
+  return store.prompts.filter((p) => {
+    const status = p.lifecycle_status ?? (p.trashed ? "trashed" : "active");
+    return status === lifecycle;
+  });
+}
+
 function activePrompts(store: WebStore): StoredPrompt[] {
-  return store.prompts.filter((p) => !p.trashed);
+  return promptsWithLifecycle(store, "active");
+}
+
+function findAnyPrompt(store: WebStore, promptId: string): StoredPrompt {
+  const prompt = store.prompts.find((p) => p.id === promptId);
+  if (!prompt) throw new Error("prompt not found");
+  return prompt;
+}
+
+function findActivePrompt(store: WebStore, promptId: string): StoredPrompt {
+  const prompt = findAnyPrompt(store, promptId);
+  const status = prompt.lifecycle_status ?? (prompt.trashed ? "trashed" : "active");
+  if (status !== "active") throw new Error("prompt not found");
+  return prompt;
 }
 
 function findPrompt(store: WebStore, promptId: string): StoredPrompt {
-  const prompt = store.prompts.find((p) => p.id === promptId && !p.trashed);
-  if (!prompt) throw new Error("prompt not found");
-  return prompt;
+  return findActivePrompt(store, promptId);
 }
 
 function versionSummary(
@@ -221,7 +290,8 @@ function listPromptsFiltered(
   store: WebStore,
   filters: ListPromptFilters = {},
 ): PromptSummary[] {
-  let prompts = activePrompts(store);
+  const lifecycle = filters.lifecycleFilter ?? "active";
+  let prompts = promptsWithLifecycle(store, lifecycle);
   if (filters.folderId !== undefined && filters.folderId !== null) {
     prompts = prompts.filter((p) => p.folder_id === filters.folderId);
   }
@@ -326,6 +396,10 @@ function toSessionSummary(session: StoredSession): SessionSummary {
     updated_at: session.updated_at,
     stopped: session.stopped,
   };
+}
+
+function transcriptByteSize(lines: TranscriptLine[]): number {
+  return new TextEncoder().encode(JSON.stringify(lines)).length;
 }
 
 function findSession(store: WebStore, promptId: string, sessionId: string): StoredSession {
@@ -521,6 +595,7 @@ export async function webInvoke<T>(
       return [...store.profiles] as T;
 
     case "save_langdock_profile": {
+      requireWebAuthorize("credential:write");
       const input = args.input as ProfileInput;
       const profileId = args.profileId as string | null | undefined;
       const testConnectivity = (args.testConnectivity as boolean | undefined) ?? true;
@@ -544,12 +619,12 @@ export async function webInvoke<T>(
         for (const p of store.profiles) p.is_default = p.id === id;
       }
       if (input.api_key) {
-        store.profileApiKeys[id] = input.api_key;
+        webProfileApiKeys.set(id, input.api_key);
       }
-      if (testConnectivity && store.profileApiKeys[id]) {
+      if (testConnectivity && webProfileApiKeys.has(id)) {
         profile.connection_status = await probeLangDock(
           profile.base_url,
-          store.profileApiKeys[id],
+          webProfileApiKeys.get(id)!,
         );
         profile.last_tested_at = nowIso();
       }
@@ -558,10 +633,11 @@ export async function webInvoke<T>(
     }
 
     case "test_langdock_connection": {
+      requireWebAuthorize("credential:write");
       const profileId = args.profileId as string;
       const profile = store.profiles.find((p) => p.id === profileId);
       if (!profile) throw new Error("profile not found");
-      const apiKey = store.profileApiKeys[profileId];
+      const apiKey = webProfileApiKeys.get(profileId);
       if (!apiKey) {
         profile.connection_status = "configuration_error";
       } else {
@@ -573,6 +649,7 @@ export async function webInvoke<T>(
     }
 
     case "set_default_langdock_profile": {
+      requireWebAuthorize("credential:write");
       const profileId = args.profileId as string;
       const profile = store.profiles.find((p) => p.id === profileId);
       if (!profile) throw new Error("profile not found");
@@ -582,26 +659,31 @@ export async function webInvoke<T>(
     }
 
     case "delete_langdock_profile": {
+      requireWebAuthorize("credential:write");
       const profileId = args.profileId as string;
       store.profiles = store.profiles.filter((p) => p.id !== profileId);
-      delete store.profileApiKeys[profileId];
+      webProfileApiKeys.delete(profileId);
       saveStore(store);
       return undefined as T;
     }
 
     case "list_prompts":
+      requireWebAuthorize("prompt:read");
       return listPromptsFiltered(store, {
         folderId: args.folderId as string | null | undefined,
         tagId: args.tagId as string | null | undefined,
         favoritesOnly: (args.favoritesOnly as boolean | null | undefined) ?? undefined,
+        lifecycleFilter: (args.lifecycleFilter as ListPromptFilters["lifecycleFilter"]) ?? "active",
       }) as T;
 
     case "get_prompt": {
-      const prompt = findPrompt(store, args.promptId as string);
+      requireWebAuthorize("prompt:read");
+      const prompt = findAnyPrompt(store, args.promptId as string);
       return toPromptSummary(store, prompt) as T;
     }
 
     case "create_prompt": {
+      requireWebAuthorize("prompt:write");
       const title = (args.title as string).trim();
       if (!title) throw new Error("title is required");
       const folderId = args.folderId as string | null | undefined;
@@ -618,6 +700,7 @@ export async function webInvoke<T>(
         is_favorite: false,
         updated_at: nowIso(),
         trashed: false,
+        lifecycle_status: "active",
         head_version_id: null,
         content_syntax: "auto",
       };
@@ -628,6 +711,7 @@ export async function webInvoke<T>(
     }
 
     case "update_prompt": {
+      requireWebAuthorize("prompt:write");
       const prompt = findPrompt(store, args.promptId as string);
       if (args.title !== undefined && args.title !== null) {
         const title = (args.title as string).trim();
@@ -659,8 +743,43 @@ export async function webInvoke<T>(
     }
 
     case "trash_prompt": {
-      const prompt = findPrompt(store, args.promptId as string);
+      requireWebAuthorize("prompt:write");
+      const prompt = findAnyPrompt(store, args.promptId as string);
+      const status = prompt.lifecycle_status ?? (prompt.trashed ? "trashed" : "active");
+      if (status === "trashed") throw new Error("prompt not found");
       prompt.trashed = true;
+      prompt.lifecycle_status = "trashed";
+      prompt.updated_at = nowIso();
+      saveStore(store);
+      return undefined as T;
+    }
+
+    case "archive_prompt": {
+      requireWebAuthorize("prompt:write");
+      const prompt = findActivePrompt(store, args.promptId as string);
+      prompt.lifecycle_status = "archived";
+      prompt.trashed = false;
+      prompt.updated_at = nowIso();
+      saveStore(store);
+      return undefined as T;
+    }
+
+    case "unarchive_prompt": {
+      requireWebAuthorize("prompt:write");
+      const prompt = findAnyPrompt(store, args.promptId as string);
+      if (prompt.lifecycle_status !== "archived") throw new Error("prompt not found");
+      prompt.lifecycle_status = "active";
+      prompt.updated_at = nowIso();
+      saveStore(store);
+      return undefined as T;
+    }
+
+    case "restore_prompt": {
+      requireWebAuthorize("prompt:write");
+      const prompt = findAnyPrompt(store, args.promptId as string);
+      if (prompt.lifecycle_status !== "trashed") throw new Error("prompt not found");
+      prompt.lifecycle_status = "active";
+      prompt.trashed = false;
       prompt.updated_at = nowIso();
       saveStore(store);
       return undefined as T;
@@ -670,6 +789,7 @@ export async function webInvoke<T>(
       return [...store.folders].sort((a, b) => a.title.localeCompare(b.title)) as T;
 
     case "create_prompt_folder": {
+      requireWebAuthorize("prompt:write");
       const title = (args.title as string).trim();
       if (!title) throw new Error("title is required");
       const parentId = args.parentId as string | null | undefined;
@@ -691,6 +811,7 @@ export async function webInvoke<T>(
     }
 
     case "move_prompt_to_folder": {
+      requireWebAuthorize("prompt:write");
       const prompt = findPrompt(store, args.promptId as string);
       const folderId = args.folderId as string | null | undefined;
       if (folderId && !store.folders.some((f) => f.id === folderId)) {
@@ -703,9 +824,11 @@ export async function webInvoke<T>(
     }
 
     case "list_tags":
+      requireWebAuthorize("prompt:read");
       return [...store.tags].sort((a, b) => a.name.localeCompare(b.name)) as T;
 
     case "set_prompt_tags": {
+      requireWebAuthorize("prompt:write");
       const prompt = findPrompt(store, args.promptId as string);
       const tagNames = args.tagNames as string[];
       prompt.tag_ids = tagNames.map((name) => findOrCreateTag(store, name).id);
@@ -715,6 +838,7 @@ export async function webInvoke<T>(
     }
 
     case "add_prompt_tag": {
+      requireWebAuthorize("prompt:write");
       const prompt = findPrompt(store, args.promptId as string);
       const tag = findOrCreateTag(store, args.tagName as string);
       if (!prompt.tag_ids.includes(tag.id)) prompt.tag_ids.push(tag.id);
@@ -724,6 +848,7 @@ export async function webInvoke<T>(
     }
 
     case "remove_prompt_tag": {
+      requireWebAuthorize("prompt:write");
       const prompt = findPrompt(store, args.promptId as string);
       const tagId = args.tagId as string;
       prompt.tag_ids = prompt.tag_ids.filter((id) => id !== tagId);
@@ -733,6 +858,7 @@ export async function webInvoke<T>(
     }
 
     case "set_prompt_favorite": {
+      requireWebAuthorize("prompt:write");
       const prompt = findPrompt(store, args.promptId as string);
       prompt.is_favorite = true;
       prompt.updated_at = nowIso();
@@ -741,6 +867,7 @@ export async function webInvoke<T>(
     }
 
     case "unset_prompt_favorite": {
+      requireWebAuthorize("prompt:write");
       const prompt = findPrompt(store, args.promptId as string);
       prompt.is_favorite = false;
       prompt.updated_at = nowIso();
@@ -754,6 +881,7 @@ export async function webInvoke<T>(
     }
 
     case "seed_starter_samples": {
+      requireWebAuthorize("prompt:write");
       const id = newId();
       store.prompts.push({
         id,
@@ -764,6 +892,7 @@ export async function webInvoke<T>(
         is_favorite: false,
         updated_at: nowIso(),
         trashed: false,
+        lifecycle_status: "active",
         head_version_id: null,
         content_syntax: "auto",
       });
@@ -781,10 +910,13 @@ export async function webInvoke<T>(
       return counts as T;
     }
 
-    case "check_authorize":
-      return { allowed: true } as T;
+    case "check_authorize": {
+      const action = args.action as string;
+      return webAuthorize(action) as T;
+    }
 
     case "save_prompt_content": {
+      requireWebAuthorize("prompt:write");
       const promptId = args.promptId as string;
       const content = args.content as string;
       if (content.length > MAX_CONTENT_LEN) throw new Error("content too long");
@@ -802,9 +934,11 @@ export async function webInvoke<T>(
     }
 
     case "list_prompt_versions":
+      requireWebAuthorize("prompt:read");
       return listVersionsForPrompt(store, args.promptId as string) as T;
 
     case "get_prompt_version_content": {
+      requireWebAuthorize("prompt:read");
       const versionId = args.versionId as string;
       const version = store.promptVersions.find((v) => v.id === versionId);
       if (!version) throw new Error("version not found");
@@ -813,6 +947,7 @@ export async function webInvoke<T>(
     }
 
     case "restore_prompt_version": {
+      requireWebAuthorize("prompt:write");
       const promptId = args.promptId as string;
       const versionId = args.versionId as string;
       const prompt = findPrompt(store, promptId);
@@ -834,17 +969,24 @@ export async function webInvoke<T>(
       return summary as T;
     }
 
-    case "start_prompt_run":
+    case "start_prompt_run": {
+      requireWebAuthorize("prompt:execute");
       return webStartPromptRun(store, args) as T;
+    }
 
-    case "send_prompt_message":
+    case "send_prompt_message": {
+      requireWebAuthorize("prompt:execute");
       return webSendPromptMessage(store, args) as T;
+    }
 
-    case "stop_prompt_run":
+    case "stop_prompt_run": {
+      requireWebAuthorize("prompt:execute");
       webStopPromptRun(store, args);
       return undefined as T;
+    }
 
     case "list_prompt_sessions": {
+      requireWebAuthorize("prompt:read");
       const promptId = args.promptId as string;
       findPrompt(store, promptId);
       return store.sessions
@@ -854,12 +996,19 @@ export async function webInvoke<T>(
     }
 
     case "get_session_transcript": {
+      requireWebAuthorize("prompt:read");
       const promptId = args.promptId as string;
       const sessionId = args.sessionId as string;
-      return [...findSession(store, promptId, sessionId).transcript] as T;
+      const session = findSession(store, promptId, sessionId);
+      const transcript = [...session.transcript];
+      if (transcriptByteSize(transcript) > MAX_TRANSCRIPT_BYTES) {
+        throw new Error("transcript too large");
+      }
+      return transcript as T;
     }
 
     case "delete_prompt_session": {
+      requireWebAuthorize("prompt:execute");
       const promptId = args.promptId as string;
       const sessionId = args.sessionId as string;
       findSession(store, promptId, sessionId);
