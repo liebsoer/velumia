@@ -83,6 +83,7 @@ SM delegates per **Implementation Spec** sub-agent ownership. Handoffs must comp
 - Skill: `.cursor/skills/velumia-planning-chatprd-sync/SKILL.md`
 - Skill: `.cursor/skills/velumia-security-review/SKILL.md`
 - Skill: `.cursor/skills/velumia-architecture-review/SKILL.md`
+- Skill: `.cursor/skills/velumia-retro-tooling-sync/SKILL.md`
 - SM: `.cursor/agents/velumia-scrum-sm.md`
 - PO: `.cursor/agents/velumia-scrum-po.md`
 - Security: `.cursor/agents/velumia-dev-security.md`

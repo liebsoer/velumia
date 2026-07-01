@@ -29,6 +29,7 @@ pub struct PromptSummary {
     pub is_favorite: bool,
     pub content_syntax: String,
     pub updated_at: String,
+    pub lifecycle_status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,6 +45,7 @@ pub struct ListPromptFilters {
     pub folder_id: Option<String>,
     pub tag_id: Option<String>,
     pub favorites_only: Option<bool>,
+    pub lifecycle_filter: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,18 +109,52 @@ impl PromptService {
         db.solo_user_id().map_err(|e| e.to_string())
     }
 
+    fn lifecycle_filter_value(filters: &ListPromptFilters) -> Result<&'static str, String> {
+        match filters.lifecycle_filter.as_deref().unwrap_or("active") {
+            "active" => Ok("active"),
+            "archived" => Ok("archived"),
+            "trashed" => Ok("trashed"),
+            _ => Err("invalid lifecycle filter".into()),
+        }
+    }
+
+    fn map_prompt_summary(
+        db: &AppDatabase,
+        id: String,
+        title: String,
+        slug: String,
+        folder_id: Option<String>,
+        content_syntax: String,
+        updated_at: String,
+        is_favorite: bool,
+        lifecycle_status: String,
+    ) -> Result<PromptSummary, String> {
+        Ok(PromptSummary {
+            id: id.clone(),
+            title,
+            slug,
+            folder_id,
+            tags: Self::tags_for_prompt(db, &id)?,
+            is_favorite,
+            content_syntax,
+            updated_at,
+            lifecycle_status,
+        })
+    }
+
     pub fn list(db: &AppDatabase, filters: ListPromptFilters) -> Result<Vec<PromptSummary>, String> {
         Self::require_read(db)?;
         let owner_id = Self::owner_id(db)?;
         let user_id = owner_id.clone();
         let favorites_only = filters.favorites_only.unwrap_or(false);
+        let lifecycle = Self::lifecycle_filter_value(&filters)?;
 
-        let mut sql = String::from(
-            "SELECT p.id, p.title, p.slug, p.folder_id, p.content_syntax, p.updated_at,
+        let mut sql = format!(
+            "SELECT p.id, p.title, p.slug, p.folder_id, p.content_syntax, p.updated_at, p.lifecycle_status,
                     CASE WHEN f.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorite
              FROM prompts p
              LEFT JOIN favorites f ON f.entity_type = ?1 AND f.entity_id = p.id AND f.user_id = ?2
-             WHERE p.lifecycle_status = 'active' AND p.owner_id = ?3
+             WHERE p.lifecycle_status = '{lifecycle}' AND p.owner_id = ?3
                AND (?4 IS NULL OR p.folder_id = ?4)",
         );
 
@@ -149,7 +185,8 @@ impl PromptService {
                         r.get::<_, Option<String>>(3)?,
                         r.get::<_, String>(4)?,
                         r.get::<_, String>(5)?,
-                        r.get::<_, i64>(6)? != 0,
+                        r.get::<_, String>(6)?,
+                        r.get::<_, i64>(7)? != 0,
                     ))
                 },
             )
@@ -157,18 +194,19 @@ impl PromptService {
 
         let mut prompts = Vec::new();
         for row in rows {
-            let (id, title, slug, folder_id, content_syntax, updated_at, is_favorite) =
+            let (id, title, slug, folder_id, content_syntax, updated_at, lifecycle_status, is_favorite) =
                 row.map_err(|e| e.to_string())?;
-            prompts.push(PromptSummary {
-                id: id.clone(),
+            prompts.push(Self::map_prompt_summary(
+                db,
+                id,
                 title,
                 slug,
                 folder_id,
-                tags: Self::tags_for_prompt(db, &id)?,
-                is_favorite,
                 content_syntax,
                 updated_at,
-            });
+                is_favorite,
+                lifecycle_status,
+            )?);
         }
         Ok(prompts)
     }
@@ -180,11 +218,11 @@ impl PromptService {
         let row = db
             .conn
             .query_row(
-                "SELECT p.id, p.title, p.slug, p.folder_id, p.content_syntax, p.updated_at,
+                "SELECT p.id, p.title, p.slug, p.folder_id, p.content_syntax, p.updated_at, p.lifecycle_status,
                         CASE WHEN f.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorite
                  FROM prompts p
                  LEFT JOIN favorites f ON f.entity_type = ?1 AND f.entity_id = p.id AND f.user_id = ?2
-                 WHERE p.id = ?3 AND p.owner_id = ?4 AND p.lifecycle_status = 'active'",
+                 WHERE p.id = ?3 AND p.owner_id = ?4",
                 params![ENTITY_TYPE_PROMPT, owner_id, prompt_id, owner_id],
                 |r| {
                     Ok((
@@ -194,22 +232,24 @@ impl PromptService {
                         r.get::<_, Option<String>>(3)?,
                         r.get::<_, String>(4)?,
                         r.get::<_, String>(5)?,
-                        r.get::<_, i64>(6)? != 0,
+                        r.get::<_, String>(6)?,
+                        r.get::<_, i64>(7)? != 0,
                     ))
                 },
             )
             .map_err(|_| "prompt not found".to_string())?;
 
-        Ok(PromptSummary {
-            id: row.0.clone(),
-            title: row.1,
-            slug: row.2,
-            folder_id: row.3,
-            tags: Self::tags_for_prompt(db, &row.0)?,
-            is_favorite: row.6,
-            content_syntax: row.4,
-            updated_at: row.5,
-        })
+        Self::map_prompt_summary(
+            db,
+            row.0,
+            row.1,
+            row.2,
+            row.3,
+            row.4,
+            row.5,
+            row.7,
+            row.6,
+        )
     }
 
     pub fn create(
@@ -300,11 +340,65 @@ impl PromptService {
             .conn
             .execute(
                 "UPDATE prompts SET lifecycle_status = 'trashed', trashed_at = ?1, updated_at = ?1
-                 WHERE id = ?2 AND owner_id = ?3",
+                 WHERE id = ?2 AND owner_id = ?3 AND lifecycle_status IN ('active', 'archived')",
                 params![now, prompt_id, owner_id],
             )
             .map_err(|e| e.to_string())?;
 
+        if updated == 0 {
+            return Err("prompt not found".into());
+        }
+        Ok(())
+    }
+
+    pub fn archive(db: &AppDatabase, prompt_id: &str) -> Result<(), String> {
+        Self::require_write(db)?;
+        let owner_id = Self::owner_id(db)?;
+        let now = Utc::now().to_rfc3339();
+        let updated = db
+            .conn
+            .execute(
+                "UPDATE prompts SET lifecycle_status = 'archived', updated_at = ?1
+                 WHERE id = ?2 AND owner_id = ?3 AND lifecycle_status = 'active'",
+                params![now, prompt_id, owner_id],
+            )
+            .map_err(|e| e.to_string())?;
+        if updated == 0 {
+            return Err("prompt not found".into());
+        }
+        Ok(())
+    }
+
+    pub fn unarchive(db: &AppDatabase, prompt_id: &str) -> Result<(), String> {
+        Self::require_write(db)?;
+        let owner_id = Self::owner_id(db)?;
+        let now = Utc::now().to_rfc3339();
+        let updated = db
+            .conn
+            .execute(
+                "UPDATE prompts SET lifecycle_status = 'active', updated_at = ?1
+                 WHERE id = ?2 AND owner_id = ?3 AND lifecycle_status = 'archived'",
+                params![now, prompt_id, owner_id],
+            )
+            .map_err(|e| e.to_string())?;
+        if updated == 0 {
+            return Err("prompt not found".into());
+        }
+        Ok(())
+    }
+
+    pub fn restore_from_trash(db: &AppDatabase, prompt_id: &str) -> Result<(), String> {
+        Self::require_write(db)?;
+        let owner_id = Self::owner_id(db)?;
+        let now = Utc::now().to_rfc3339();
+        let updated = db
+            .conn
+            .execute(
+                "UPDATE prompts SET lifecycle_status = 'active', trashed_at = NULL, updated_at = ?1
+                 WHERE id = ?2 AND owner_id = ?3 AND lifecycle_status = 'trashed'",
+                params![now, prompt_id, owner_id],
+            )
+            .map_err(|e| e.to_string())?;
         if updated == 0 {
             return Err("prompt not found".into());
         }
@@ -560,6 +654,25 @@ impl PromptService {
             .ok_or_else(|| "prompt not found".to_string())
     }
 
+    fn assert_prompt_readable_not_trashed(
+        db: &AppDatabase,
+        owner_id: &str,
+        prompt_id: &str,
+    ) -> Result<(), String> {
+        let status: String = db
+            .conn
+            .query_row(
+                "SELECT lifecycle_status FROM prompts WHERE id = ?1 AND owner_id = ?2",
+                params![prompt_id, owner_id],
+                |r| r.get(0),
+            )
+            .map_err(|_| "prompt not found".to_string())?;
+        if status == "trashed" {
+            return Err("prompt not found".into());
+        }
+        Ok(())
+    }
+
     fn assert_folder_owned(db: &AppDatabase, owner_id: &str, folder_id: &str) -> Result<(), String> {
         db.conn
             .query_row(
@@ -744,7 +857,7 @@ impl PromptService {
     ) -> Result<Vec<PromptVersionSummary>, String> {
         Self::require_read(db)?;
         let owner_id = Self::owner_id(db)?;
-        Self::assert_prompt_owned(db, &owner_id, prompt_id)?;
+        Self::assert_prompt_readable_not_trashed(db, &owner_id, prompt_id)?;
 
         let mut stmt = db
             .conn
@@ -785,7 +898,7 @@ impl PromptService {
             .query_row(
                 "SELECT pv.content_path FROM prompt_versions pv
                  INNER JOIN prompts p ON p.id = pv.prompt_id
-                 WHERE pv.id = ?1 AND p.owner_id = ?2 AND p.lifecycle_status = 'active'",
+                 WHERE pv.id = ?1 AND p.owner_id = ?2 AND p.lifecycle_status IN ('active', 'archived')",
                 params![version_id, owner_id],
                 |r| r.get(0),
             )

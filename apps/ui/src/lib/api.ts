@@ -10,6 +10,7 @@ export type {
   ProfileInput,
   PromptContentSyntax,
   PromptFolder,
+  PromptLifecycleStatus,
   PromptSummary,
   PromptVersionSummary,
   PromptRunChunkPayload,
@@ -77,6 +78,7 @@ export const api = {
       folderId: filters.folderId ?? null,
       tagId: filters.tagId ?? null,
       favoritesOnly: filters.favoritesOnly ?? null,
+      lifecycleFilter: filters.lifecycleFilter ?? null,
     }),
   getPrompt: (promptId: string) => ipc<PromptSummary>("get_prompt", { promptId }),
   createPrompt: (title: string, folderId?: string | null) =>
@@ -96,6 +98,9 @@ export const api = {
     return ipc<PromptSummary>("update_prompt", args);
   },
   trashPrompt: (promptId: string) => ipc<void>("trash_prompt", { promptId }),
+  archivePrompt: (promptId: string) => ipc<void>("archive_prompt", { promptId }),
+  unarchivePrompt: (promptId: string) => ipc<void>("unarchive_prompt", { promptId }),
+  restorePrompt: (promptId: string) => ipc<void>("restore_prompt", { promptId }),
   listPromptFolders: () => ipc<PromptFolder[]>("list_prompt_folders"),
   createPromptFolder: (title: string, parentId?: string | null) =>
     ipc<PromptFolder>("create_prompt_folder", { title, parentId: parentId ?? null }),

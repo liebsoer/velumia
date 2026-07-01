@@ -17,11 +17,14 @@ Tauri 2 invoke commands exposed to the Vue frontend via `@tauri-apps/api/core`.
 | `set_default_langdock_profile` | Set default BYOK profile |
 | `delete_langdock_profile` | Remove profile + keychain entry |
 | `check_authorize` | Returns allow/deny for permission action |
-| `list_prompts` | List active prompts; optional `folderId`, `tagId`, `favoritesOnly` filters |
-| `get_prompt` | Single prompt summary with tags and favorite flag |
+| `list_prompts` | List prompts; optional `folderId`, `tagId`, `favoritesOnly`, `lifecycleFilter` (`active` default, `archived`, `trashed`) |
+| `get_prompt` | Single prompt summary with tags, favorite flag, and `lifecycleStatus` |
 | `create_prompt` | Create prompt; optional `folderId`; requires `prompt:write` |
 | `update_prompt` | Update title, folder, and/or `contentSyntax`; requires `prompt:write` |
-| `trash_prompt` | Soft-delete prompt (`lifecycle_status = trashed`) |
+| `archive_prompt` | Archive active prompt (`lifecycle_status = archived`); requires `prompt:write` |
+| `unarchive_prompt` | Restore archived prompt to active; requires `prompt:write` |
+| `restore_prompt` | Restore trashed prompt to active (clears `trashed_at`); requires `prompt:write` |
+| `trash_prompt` | Soft-delete prompt (`lifecycle_status = trashed`; from active or archived); requires `prompt:write` |
 | `list_prompt_folders` | Flat folder list for tree UI |
 | `create_prompt_folder` | Create folder; optional `parentId` (max 2 levels) |
 | `move_prompt_to_folder` | Move prompt to folder or root (`folderId` null) |
@@ -71,5 +74,6 @@ Long-running LangDock completions use a **spawn-and-event** pattern (see `apps/d
 - API keys stored in OS keychain only (`keyring` service `velumia.langdock`).
 - `authorize()` invoked before credential and prompt mutations.
 - LangDock HTTP from Rust (`reqwest`); Vue never receives secrets.
+- **Authz test stubs (dev/CI only):** set `VELUMIA_AUTHZ_STUB_DENY=1` to deny `prompt:write`; `VELUMIA_AUTHZ_STUB_DENY_EXECUTE=1` to deny `prompt:execute`. Web dev mirrors these via `sessionStorage` keys of the same name.
 
 See [roles-rights-architecture.md](../velumia-pm/prd/roles-rights-architecture.md) and [data-model-and-storage.md](../velumia-pm/prd/data-model-and-storage.md).

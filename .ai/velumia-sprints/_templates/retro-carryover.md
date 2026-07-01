@@ -8,11 +8,15 @@ Complete **before** ChatPRD sprint PRD or any other planning work.
 
 ## Actions due this sprint
 
-| Action (from source retro) | Owner | Integration decision | Reflected in | Status |
-|----------------------------|-------|----------------------|--------------|--------|
-| | | how this sprint honors the action | `sprint-prd` / `refinement.md` / `implementation-plan.md` / ceremony / Linear / other | integrated / deferred / escalated |
+| Action (from source retro) | Category | Owner | Integration decision | Reflected in | Status |
+|----------------------------|----------|-------|----------------------|--------------|--------|
+| | | | how this sprint honors the action | see values below | integrated / deferred / escalated |
+
+**Reflected in values:** `sprint-prd` / `refinement.md` / `implementation-plan.md` / `decisions.md` / Linear / `.cursor/agents/*` / `.cursor/skills/*` / `AGENTS.md` / `.cursor/plans/delivery/velumia-sprint-ceremony.plan.md` / BM Team playbook / other
 
 **Status values:** `integrated` — decision recorded and will appear in named artifact; `deferred` — explicitly pushed to a later sprint (note target); `escalated` — see `decisions.md` **Stakeholder — retro carry-over**.
+
+For `tooling` actions: apply edits per skill **velumia-retro-tooling-sync** in the same Planning session or record commit ref in carry-over before gate passes.
 
 ## Stakeholder escalations
 
@@ -25,4 +29,5 @@ If SM + PO + devs cannot agree how to integrate an action within **5 rounds** (s
 ## Sign-off
 
 **All due actions integrated or stakeholder-closed:** yes / no  
+**All due `tooling` actions have commit ref or explicit deferral:** yes / no / n/a  
 **Planning may proceed to sprint PRD:** yes / no

@@ -43,9 +43,13 @@ apps/desktop/target/
 .env.*
 !.env.example
 
-# Sprint working copies (templates tracked)
+# Sprint working copies (templates tracked; retro closure files tracked per sprint)
 .ai/velumia-sprints/LIE-*/
 !.ai/velumia-sprints/_templates/
+!.ai/velumia-sprints/LIE-*/
+.ai/velumia-sprints/LIE-/*
+!.ai/velumia-sprints/LIE-*/retro.md
+!.ai/velumia-sprints/LIE-*/retro-carryover.md
 .cursor/hooks/state/basic-memory-sync.json
 .cursor/hooks/state/continual-learning-index.json
 .cursor/hooks/state/continual-learning.json

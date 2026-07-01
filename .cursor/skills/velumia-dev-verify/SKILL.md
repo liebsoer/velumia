@@ -37,6 +37,13 @@ BDD_TAGS="@mock-langdock" pnpm nx run bdd:test
 
 Match tags to the Linear issue scenario set when verifying slice work.
 
+## PR hygiene (LIE-61 retro)
+
+- Open feature branch `lie-NNN-*` before first implementation commit.
+- Open PR with `LIE-NNN` in title before stakeholder Review — even for solo dogfood.
+- Run full sprint verify on the PR branch before requesting Review.
+- Do not merge feature work directly to `main`.
+
 ## Notes
 
 - Nx may serve cached results for unchanged projects (`[local cache]` in output).

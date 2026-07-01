@@ -36,6 +36,7 @@ const canRun = ref(false);
 const isStreaming = ref(false);
 const activeRunId = ref<string | null>(null);
 const runError = ref("");
+const transcriptNotice = ref("");
 const showVariablesModal = ref(false);
 const showDeleteConfirm = ref(false);
 const pendingUserMessage = ref("");
@@ -95,17 +96,28 @@ async function loadSessions() {
   }
 }
 
+const TRANSCRIPT_TOO_LARGE_MESSAGE =
+  "This session transcript is too large to display (over 4 MB). The session is still saved locally.";
+
 async function loadTranscript(sessionId: string) {
   if (!sessionId) {
     bubbles.value = [];
+    transcriptNotice.value = "";
     return;
   }
+  transcriptNotice.value = "";
   try {
     const lines = await props.runApi.getSessionTranscript(props.entityId, sessionId);
     bubbles.value = transcriptToBubbles(lines);
     await scrollToEnd();
   } catch (e) {
-    emit("error", e instanceof Error ? e.message : String(e));
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.toLowerCase().includes("transcript too large")) {
+      transcriptNotice.value = TRANSCRIPT_TOO_LARGE_MESSAGE;
+      bubbles.value = [];
+    } else {
+      emit("error", msg);
+    }
   }
 }
 
@@ -397,6 +409,14 @@ defineExpose({ confirmLeaveIfActive, onAttemptRun, isStreaming });
       </button>
     </p>
 
+    <p
+      v-if="transcriptNotice"
+      class="transcript-notice"
+      data-testid="prompt-run-transcript-too-large"
+    >
+      {{ transcriptNotice }}
+    </p>
+
     <div class="transcript" data-testid="prompt-run-transcript">
       <div
         v-for="(bubble, index) in bubbles"
@@ -541,6 +561,16 @@ defineExpose({ confirmLeaveIfActive, onAttemptRun, isStreaming });
   border-radius: 6px;
   background: var(--color-warning-muted);
   color: var(--color-warning);
+  font-size: 0.8125rem;
+}
+
+.transcript-notice {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   font-size: 0.8125rem;
 }
 

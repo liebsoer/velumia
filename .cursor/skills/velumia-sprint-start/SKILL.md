@@ -28,8 +28,10 @@ Each sprint produces **two ChatPRD documents**, both **linked on the Linear issu
 2. **SM + PO + dev subagents** — **retro carry-over (first planning work)**
    - Read the prior completed sprint's `retro.md` (use Basic Memory **Velumia — Status** for sequence; path `.ai/velumia-sprints/LIE-*/retro.md`)
    - For each action whose **Next sprint** column matches **LIE-NNN**, names this issue, says **Before LIE-NNN**, or is otherwise overdue — decide **how to integrate**
-   - Record in `retro-carryover.md`; escalate undecided items to **stakeholder** via `decisions.md` **Stakeholder — retro carry-over** (max 5 rounds)
-   - Gate: all due actions **integrated** or **stakeholder-closed**
+   - Record in `retro-carryover.md` with **Category** and **Reflected in** (include `.cursor/agents/*`, `.cursor/skills/*`, `AGENTS.md` when applicable)
+   - For due `tooling` actions: apply per **velumia-retro-tooling-sync** or confirm prior sprint commit ref; deferrals must name target sprint
+   - Escalate undecided items to **stakeholder** via `decisions.md` **Stakeholder — retro carry-over** (max 5 rounds)
+   - Gate: all due actions **integrated** or **stakeholder-closed**; all due `tooling` actions have **commit ref** or explicit deferral
 3. **SM + PO + stakeholder** — **security carry-over** (before sprint PRD)
    - Read prior sprint `security-review.md` § Implementation for **open** findings (especially Critical/High)
    - Record in `security-carryover.md`; **stakeholder disposition required** for open Critical/High (fix / waiver / defer) — team does not close without stakeholder answer
@@ -58,6 +60,7 @@ Do **not** start Implementation until Planning gate passes. Do **not** move to R
 ## Planning gate checklist
 
 - [ ] Prior sprint `retro.md` reviewed; due actions integrated or stakeholder-closed in `retro-carryover.md` + `decisions.md`
+- [ ] Due `tooling` retro actions applied or commit-ref'd per **velumia-retro-tooling-sync** (agents/skills/`AGENTS.md`/ceremony plan)
 - [ ] Prior sprint open security findings dispositioned in `security-carryover.md` (stakeholder for Critical/High)
 - [ ] Prior sprint open architecture findings integrated or stakeholder-closed in `architecture-carryover.md` + `decisions.md`
 - [ ] Sprint PRD created in ChatPRD **before** refinement; updated after refinement; synced to `sprint-prd.md`
@@ -95,6 +98,7 @@ Do **not** start Implementation until Planning gate passes. Do **not** move to R
 - **velumia-planning-chatprd-sync** — sync sprint PRD or Implementation Spec from ChatPRD to local + velumia-pm mirror + BM
 - **velumia-security-review** — on-demand `/security-review LIE-NNN` (Planning + Implementation phases)
 - **velumia-architecture-review** — on-demand `/architecture-review LIE-NNN` (Planning + Implementation phases)
+- **velumia-retro-tooling-sync** — classify retro actions and update agents/skills/`AGENTS.md`/BM playbook
 
 ## Inputs
 
