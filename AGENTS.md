@@ -1,5 +1,6 @@
 ## Learned User Preferences
 
+- **Sprint delegation:** Run the full sprint ceremony end-to-end (Review → merge → retro → Linear/BM updates). Proceed autonomously; stop and ask the stakeholder only for genuine blockers (escalations, waivers, product decisions). Do not ask permission for routine closure steps (e.g. draft `review.md`, merge after green CI).
 - Prefer `velumia-pm` as a proper git submodule at `velumia-pm/`, not a sibling symlink.
 - Create Sprint PRD and Implementation Spec **in ChatPRD** (MCP `create_document` / `update_document`); Implementation Spec **must** use [`templates/chatprd/chatprd_feature-implementation-spec.tpl.md`](./templates/chatprd/chatprd_feature-implementation-spec.tpl.md) as the section outline. Do not author local `sprint-prd.md` or `implementation-plan.md` first — local files are mirrors synced via `velumia-planning-chatprd-sync`.
 - Prefer Nx-native dev commands (`pnpm nx run ui:dev`, `pnpm nx run desktop:dev`); no root npm/pnpm script aliases.
