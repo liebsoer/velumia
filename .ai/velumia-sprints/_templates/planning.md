@@ -12,6 +12,18 @@
 **`retro-carryover.md` complete:** yes / no  
 **Stakeholder escalations closed:** yes / no / n/a  
 
+## Security carry-over (complete before ChatPRD)
+
+**Source security review:**  
+**`security-carryover.md` complete:** yes / no / n/a  
+**Stakeholder disposition on open Critical/High:** yes / no / n/a  
+
+## Architecture carry-over (complete before ChatPRD)
+
+**Source architecture review:**  
+**`architecture-carryover.md` complete:** yes / no / n/a  
+**Stakeholder escalations closed:** yes / no / n/a  
+
 ## Goal
 
 ## Acceptance criteria (scenario IDs)
@@ -49,3 +61,9 @@
 
 **Estimate:**  
 **Recorded in Linear:** yes / no
+
+## Planning reviews (before Implementation)
+
+**`security-review.md` Planning complete:** yes / no  
+**`architecture-review.md` Planning complete:** yes / no  
+**Implementation Spec § Architecture and security impact:** yes / no
