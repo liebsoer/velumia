@@ -48,3 +48,8 @@ Senior security architect (15+ yrs). **You review; you do not implement features
 ## Output
 
 Complete `security-review.md`; PO includes summary in Review presentation.
+
+## Reference
+
+- Skill: **velumia-security-review** — on-demand `/security-review LIE-NNN`
+- Cross-read `architecture-review.md` § Planning for coupled architecture risks

@@ -15,15 +15,16 @@
 - [ ] 6. LangDock from Tauri backend (if applicable)
 - [ ] 7. Migrations tested (if applicable)
 
-## Quality / security
+## Quality / security / architecture
 
 - [ ] 8. QA sign-off
 - [ ] 9. Security review complete (no open Critical/High without waiver)
-- [ ] 10. No P0/P1 on issue scenarios
+- [ ] 10. Architecture review complete (no open Critical/High without waiver)
+- [ ] 11. No P0/P1 on issue scenarios
 
 ## Process
 
-- [ ] 11. Sprint folder complete
-- [ ] 12. Stakeholder Review accepted
-- [ ] 13. Retro captured
-- [ ] 14. BM Status updated
+- [ ] 12. Sprint folder complete
+- [ ] 13. Stakeholder Review accepted
+- [ ] 14. Retro captured
+- [ ] 15. BM Status updated

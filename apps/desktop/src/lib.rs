@@ -4,11 +4,15 @@ pub mod db;
 pub mod keychain;
 pub mod langdock;
 pub mod prompts;
+pub mod prompt_runs;
+pub mod sessions;
 pub mod state;
+pub mod variables;
 
 use db::AppDatabase;
+use prompt_runs::RunRegistry;
 use state::AppState;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,9 +27,10 @@ pub fn run() {
             let database = AppDatabase::open(&dir).expect("database open");
             let _ = database.bootstrap_owner(None);
 
-            app.manage(AppState {
-                db: Mutex::new(database),
-            });
+            app.manage(Arc::new(AppState {
+                db: Arc::new(Mutex::new(database)),
+                runs: RunRegistry::new(),
+            }));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -59,6 +64,12 @@ pub fn run() {
             commands::get_prompt_version_content,
             commands::restore_prompt_version,
             commands::can_run_prompt,
+            commands::start_prompt_run,
+            commands::send_prompt_message,
+            commands::stop_prompt_run,
+            commands::list_prompt_sessions,
+            commands::get_session_transcript,
+            commands::delete_prompt_session,
             commands::seed_starter_samples,
             commands::library_counts,
         ])

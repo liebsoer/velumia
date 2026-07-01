@@ -13,6 +13,8 @@ import MoveIcon from "../library/MoveIcon.vue";
 import PlusIcon from "../library/PlusIcon.vue";
 import StarFilterIcon from "../library/StarFilterIcon.vue";
 import TrashIcon from "../library/TrashIcon.vue";
+import { RunPanel } from "@velumia/ui-run-panel";
+import { promptRunApi } from "../../lib/prompt-run-adapter";
 import PromptCodeEditor from "./PromptCodeEditor.vue";
 import PromptUnsavedChangesModal from "./PromptUnsavedChangesModal.vue";
 import PromptVersionHistoryPanel from "./PromptVersionHistoryPanel.vue";
@@ -29,11 +31,13 @@ const emit = defineEmits<{
   openMove: [];
   openDelete: [];
   favoriteToggle: [];
+  openSettings: [];
 }>();
 
 const isEditing = ref(false);
 const saving = ref(false);
 const showVersionHistory = ref(false);
+const showRunPanel = ref(false);
 const showDetailMenu = ref(false);
 const showTagPicker = ref(false);
 const showUnsavedModal = ref(false);
@@ -44,6 +48,7 @@ const tagSearchInputRef = ref<HTMLInputElement | null>(null);
 const versionHistoryPanelRef = ref<InstanceType<typeof PromptVersionHistoryPanel> | null>(
   null,
 );
+const runPanelRef = ref<InstanceType<typeof RunPanel> | null>(null);
 
 const editTitle = ref("");
 const savedTitle = ref("");
@@ -127,6 +132,7 @@ async function loadPromptContent() {
 function enterEditMode() {
   closeDetailMenu();
   closeVersionHistory();
+  closeRunPanel();
   syncSnapshotsFromPrompt();
   isEditing.value = true;
 }
@@ -182,6 +188,9 @@ function requestLeaveEdit(): Promise<boolean> {
 }
 
 function confirmLeaveIfDirty(): Promise<boolean> {
+  if (showRunPanel.value && runPanelRef.value?.isStreaming) {
+    return runPanelRef.value.confirmLeaveIfActive();
+  }
   if (!isEditing.value || !isDirty.value) return Promise.resolve(true);
   pendingExitAction = "allowNavigation";
   showUnsavedModal.value = true;
@@ -278,6 +287,7 @@ async function onTagSearchEnter() {
 
 function toggleVersionHistory() {
   closeDetailMenu();
+  closeRunPanel();
   showVersionHistory.value = !showVersionHistory.value;
 }
 
@@ -285,9 +295,46 @@ function closeVersionHistory() {
   showVersionHistory.value = false;
 }
 
+async function toggleRunPanel() {
+  closeDetailMenu();
+  if (showRunPanel.value) {
+    const ok = await runPanelRef.value?.confirmLeaveIfActive();
+    if (!ok) return;
+    showRunPanel.value = false;
+    return;
+  }
+  if (isEditing.value) {
+    const ok = await requestLeaveEdit();
+    if (!ok) return;
+    if (isDirty.value) return;
+    exitEditMode();
+  }
+  closeVersionHistory();
+  showRunPanel.value = true;
+}
+
+function closeRunPanel() {
+  showRunPanel.value = false;
+}
+
 async function onVersionRestored() {
   await loadPromptContent();
   emit("refresh");
+}
+
+async function attemptPromptRun() {
+  if (!showRunPanel.value) {
+    if (isEditing.value) {
+      const ok = await requestLeaveEdit();
+      if (!ok) return;
+      if (isDirty.value) return;
+      exitEditMode();
+    }
+    closeVersionHistory();
+    showRunPanel.value = true;
+    await nextTick();
+  }
+  runPanelRef.value?.onAttemptRun();
 }
 
 function onDocumentPointerDown(e: PointerEvent) {
@@ -322,6 +369,10 @@ function handleEscape(): boolean {
     closeVersionHistory();
     return true;
   }
+  if (showRunPanel.value) {
+    void toggleRunPanel();
+    return true;
+  }
   if (isEditing.value && isDirty.value) {
     void requestLeaveEdit().then((ok) => {
       if (ok) exitEditMode();
@@ -341,6 +392,7 @@ watch(
     isEditing.value = false;
     showUnsavedModal.value = false;
     closeVersionHistory();
+    closeRunPanel();
     closeTagPicker();
     closeDetailMenu();
     syncSnapshotsFromPrompt();
@@ -357,7 +409,7 @@ onUnmounted(() => {
   document.removeEventListener("pointerdown", onDocumentPointerDown);
 });
 
-defineExpose({ confirmLeaveIfDirty, handleEscape });
+defineExpose({ confirmLeaveIfDirty, handleEscape, attemptPromptRun });
 </script>
 
 <template>
@@ -449,6 +501,15 @@ defineExpose({ confirmLeaveIfDirty, handleEscape });
         </div>
       </div>
       <div class="detail-toolbar">
+        <button
+          type="button"
+          class="text-toolbar-btn"
+          data-testid="prompt-run-toggle"
+          :class="{ active: showRunPanel }"
+          @click="toggleRunPanel"
+        >
+          Run
+        </button>
         <button
           type="button"
           class="text-toolbar-btn"
@@ -545,6 +606,16 @@ defineExpose({ confirmLeaveIfDirty, handleEscape });
         </button>
       </div>
     </div>
+
+    <RunPanel
+      v-if="showRunPanel"
+      ref="runPanelRef"
+      :entity-id="prompt.id"
+      :head-content="contentSaved"
+      :run-api="promptRunApi"
+      @error="emit('error', $event)"
+      @open-settings="emit('openSettings')"
+    />
 
     <PromptVersionHistoryPanel
       v-if="showVersionHistory"

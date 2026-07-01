@@ -111,6 +111,14 @@ Velumia Nx paths (see skill **velumia-nx-monorepo**):
 
 List any new packages needed with justification.
 
+### Architecture and security impact (required)
+
+Map to Planning IDs from sprint `architecture-review.md` and `security-review.md` (e.g. A1, S2). State what this sprint implements vs defers.
+
+| ID | Source | Requirement | This sprint | Owner sub-agent |
+|----|--------|-------------|-------------|-----------------|
+| | architecture / security | | implement / defer / waiver | velumia-dev-* |
+
 ## Section 6 -
 
 Dependencies & Risks

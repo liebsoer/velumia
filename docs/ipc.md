@@ -36,8 +36,35 @@ Tauri 2 invoke commands exposed to the Vue frontend via `@tauri-apps/api/core`.
 | `get_prompt_version_content` | Fetch version body by version id; requires `prompt:read` |
 | `restore_prompt_version` | Copy version body as new head; requires `prompt:write` |
 | `can_run_prompt` | True when LangDock connected |
+| `start_prompt_run` | Start new prompt run session; optional `userMessage`, `variables`, `allowEmptyVariables`; requires `prompt:execute` |
+| `send_prompt_message` | Send follow-up in existing session; streams assistant reply; requires `prompt:execute` |
+| `stop_prompt_run` | Abort in-flight stream for `{ promptId, sessionId, runId }`; requires `prompt:execute` |
+| `list_prompt_sessions` | List sessions for a prompt; requires `prompt:read` |
+| `get_session_transcript` | Read session transcript lines; requires `prompt:read` |
+| `delete_prompt_session` | Delete session row and transcript file; requires `prompt:execute` |
 | `seed_starter_samples` | Seed sample library content |
 | `library_counts` | Active entity counts |
+
+## Events (Tauri `listen`)
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `prompt-run-chunk` | `{ session_id, run_id, chunk, done }` | Streaming assistant text delta |
+| `prompt-run-done` | `{ session_id, run_id }` | Run completed successfully |
+| `prompt-run-error` | `{ session_id, run_id, message }` | Run failed (no secrets in message) |
+| `prompt-run-stopped` | `{ session_id, run_id }` | User stopped run; partial content retained |
+
+## Async streaming (prompt runs)
+
+Long-running LangDock completions use a **spawn-and-event** pattern (see `apps/desktop/src/prompt_runs.rs`):
+
+1. **Invoke returns immediately** — `start_prompt_run` / `send_prompt_message` validate authz, create or update the session, register the run in `RunRegistry`, then return `{ session_id, run_id }`.
+2. **`Arc<AppState>`** — Tauri commands hold `State<'_, Arc<AppState>>`; the spawned task clones the `Arc` so `AppHandle` + DB + registry outlive the invoke handler.
+3. **`RunRegistry`** — keyed by `prompt_id`; at most one active run per prompt. `ActiveRunHandle` carries an `AtomicBool` cancel flag; `stop_prompt_run` sets it and emits `prompt-run-stopped`.
+4. **`tokio::spawn`** — HTTP streaming runs in a background task. The SQLite lock is **released before** the LangDock request; the task re-acquires briefly to read transcript/config and append lines.
+5. **Events** — Chunks and terminal states are pushed via Tauri `emit` (`prompt-run-chunk`, `prompt-run-done`, `prompt-run-error`, `prompt-run-stopped`). Vue listens; no polling.
+
+**Web dev parity:** `apps/ui/src/lib/web-api.ts` mirrors invoke + events via `emitPromptRunEvent` and `setTimeout`-based chunk simulation so standalone Vite dev does not require Tauri.
 
 ## Security
 

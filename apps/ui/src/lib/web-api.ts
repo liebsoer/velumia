@@ -8,8 +8,12 @@ import type {
   PromptFolder,
   PromptSummary,
   PromptVersionSummary,
+  SessionSummary,
+  StartPromptRunResult,
   TagSummary,
+  TranscriptLine,
 } from "./ipc-types";
+import { PROMPT_RUN_EVENTS } from "./ipc-types";
 
 const STORAGE_KEY = "velumia.web-dev.v1";
 const WEB_VERSION = "0.1.0-web";
@@ -36,6 +40,15 @@ interface StoredPromptVersion {
   created_at: string;
 }
 
+interface StoredSession {
+  id: string;
+  prompt_id: string;
+  created_at: string;
+  updated_at: string;
+  stopped: boolean;
+  transcript: TranscriptLine[];
+}
+
 interface WebStore {
   wizardCompleted: boolean;
   profiles: LangdockProfile[];
@@ -44,7 +57,33 @@ interface WebStore {
   promptVersions: StoredPromptVersion[];
   folders: PromptFolder[];
   tags: TagSummary[];
+  sessions: StoredSession[];
 }
+
+type PromptRunListener = (event: string, payload: unknown) => void;
+const promptRunListeners = new Set<PromptRunListener>();
+
+export function subscribePromptRunEvents(listener: PromptRunListener): () => void {
+  promptRunListeners.add(listener);
+  return () => promptRunListeners.delete(listener);
+}
+
+function emitPromptRunEvent(event: string, payload: unknown): void {
+  for (const listener of promptRunListeners) listener(event, payload);
+}
+
+const STREAM_CHUNK_SIZE = 4;
+const STREAM_CHUNK_DELAY_MS = 25;
+
+interface WebActiveRun {
+  sessionId: string;
+  runId: string;
+  promptId: string;
+  aborted: boolean;
+  timeouts: ReturnType<typeof setTimeout>[];
+}
+
+const activeWebRuns = new Map<string, WebActiveRun>();
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -73,11 +112,13 @@ function loadStore(): WebStore {
     promptVersions: [],
     folders: [],
     tags: [],
+    sessions: [],
   });
 }
 
 function normalizeStore(store: WebStore): WebStore {
   if (!store.promptVersions) store.promptVersions = [];
+  if (!store.sessions) store.sessions = [];
   for (const prompt of store.prompts) {
     if (prompt.head_version_id === undefined) prompt.head_version_id = null;
     if (!prompt.content_syntax) prompt.content_syntax = "auto";
@@ -219,6 +260,239 @@ async function probeLangDock(baseUrl: string, apiKey: string): Promise<Connectio
   } catch {
     return "offline";
   }
+}
+
+function parseVariablePlaceholders(content: string): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+  let i = 0;
+  while (i + 4 <= content.length) {
+    if (content[i] === "{" && content[i + 1] === "{") {
+      const end = content.indexOf("}}", i + 2);
+      if (end === -1) break;
+      const name = content.slice(i + 2, end).trim();
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        names.push(name);
+      }
+      i = end + 2;
+      continue;
+    }
+    i += 1;
+  }
+  return names;
+}
+
+function validateAndSubstitute(
+  content: string,
+  variables: Record<string, string> | undefined,
+  allowEmptyVariables: boolean,
+): string {
+  const placeholders = parseVariablePlaceholders(content);
+  const placeholderSet = new Set(placeholders);
+  const variableKeys = new Set(Object.keys(variables ?? {}));
+  if (
+    placeholderSet.size !== variableKeys.size ||
+    [...placeholderSet].some((k) => !variableKeys.has(k))
+  ) {
+    throw new Error("variables do not match prompt placeholders");
+  }
+  for (const name of placeholders) {
+    const value = variables?.[name] ?? "";
+    if (!value && !allowEmptyVariables) {
+      throw new Error(`variable '${name}' is empty`);
+    }
+  }
+  let out = content;
+  for (const name of placeholders) {
+    const value = variables?.[name] ?? "";
+    out = out.split(`{{${name}}}`).join(value);
+  }
+  return out;
+}
+
+function headContentForPrompt(store: WebStore, promptId: string): string {
+  const prompt = findPrompt(store, promptId);
+  if (!prompt.head_version_id) return "";
+  const version = store.promptVersions.find((v) => v.id === prompt.head_version_id);
+  return version?.content ?? "";
+}
+
+function toSessionSummary(session: StoredSession): SessionSummary {
+  return {
+    id: session.id,
+    prompt_id: session.prompt_id,
+    created_at: session.created_at,
+    updated_at: session.updated_at,
+    stopped: session.stopped,
+  };
+}
+
+function findSession(store: WebStore, promptId: string, sessionId: string): StoredSession {
+  const session = store.sessions.find((s) => s.id === sessionId && s.prompt_id === promptId);
+  if (!session) throw new Error("session not found");
+  return session;
+}
+
+function mockReplyForUserMessage(userMessage: string): string {
+  return `mock-reply:${userMessage}`;
+}
+
+function chunkText(text: string): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += STREAM_CHUNK_SIZE) {
+    chunks.push(text.slice(i, i + STREAM_CHUNK_SIZE));
+  }
+  return chunks.length > 0 ? chunks : [""];
+}
+
+function clearRunTimeouts(run: WebActiveRun): void {
+  for (const t of run.timeouts) clearTimeout(t);
+  run.timeouts = [];
+}
+
+function scheduleWebStream(
+  store: WebStore,
+  run: WebActiveRun,
+  replyText: string,
+): void {
+  const session = findSession(store, run.promptId, run.sessionId);
+  const chunks = chunkText(replyText);
+  let accumulated = "";
+  let index = 0;
+
+  const emitChunk = () => {
+    if (run.aborted) return;
+    if (index >= chunks.length) {
+      session.transcript.push({ type: "message", role: "assistant", content: accumulated });
+      session.updated_at = nowIso();
+      saveStore(store);
+      emitPromptRunEvent(PROMPT_RUN_EVENTS.chunk, {
+        session_id: run.sessionId,
+        run_id: run.runId,
+        chunk: "",
+        done: true,
+      });
+      emitPromptRunEvent(PROMPT_RUN_EVENTS.done, {
+        session_id: run.sessionId,
+        run_id: run.runId,
+      });
+      activeWebRuns.delete(run.runId);
+      return;
+    }
+    accumulated += chunks[index];
+    index += 1;
+    emitPromptRunEvent(PROMPT_RUN_EVENTS.chunk, {
+      session_id: run.sessionId,
+      run_id: run.runId,
+      chunk: chunks[index - 1],
+      done: false,
+    });
+    const timeout = setTimeout(emitChunk, STREAM_CHUNK_DELAY_MS);
+    run.timeouts.push(timeout);
+  };
+
+  const timeout = setTimeout(emitChunk, STREAM_CHUNK_DELAY_MS);
+  run.timeouts.push(timeout);
+}
+
+function startWebStream(
+  store: WebStore,
+  promptId: string,
+  sessionId: string,
+  userMessage: string,
+): StartPromptRunResult {
+  const session = findSession(store, promptId, sessionId);
+  const runId = newId();
+  const run: WebActiveRun = {
+    sessionId,
+    runId,
+    promptId,
+    aborted: false,
+    timeouts: [],
+  };
+  activeWebRuns.set(runId, run);
+
+  if (userMessage) {
+    session.transcript.push({ type: "message", role: "user", content: userMessage });
+  }
+  session.updated_at = nowIso();
+  saveStore(store);
+
+  scheduleWebStream(store, run, mockReplyForUserMessage(userMessage));
+  return { session_id: sessionId, run_id: runId };
+}
+
+function webStartPromptRun(
+  store: WebStore,
+  args: Record<string, unknown>,
+): StartPromptRunResult {
+  const input = args.input as {
+    prompt_id: string;
+    user_message?: string;
+    variables?: Record<string, string>;
+    allow_empty_variables?: boolean;
+  };
+  const promptId = input.prompt_id;
+  if (connectionWidget(store).status !== "connected") {
+    throw new Error("LangDock is not connected");
+  }
+  findPrompt(store, promptId);
+  const head = headContentForPrompt(store, promptId);
+  const instructions = validateAndSubstitute(
+    head,
+    input.variables,
+    input.allow_empty_variables ?? false,
+  );
+  const sessionId = newId();
+  const createdAt = nowIso();
+  const session: StoredSession = {
+    id: sessionId,
+    prompt_id: promptId,
+    created_at: createdAt,
+    updated_at: createdAt,
+    stopped: false,
+    transcript: [{ type: "run_config", instructions, model: "gpt-4o-mini" }],
+  };
+  store.sessions.push(session);
+  saveStore(store);
+  return startWebStream(store, promptId, sessionId, input.user_message ?? "");
+}
+
+function webSendPromptMessage(
+  store: WebStore,
+  args: Record<string, unknown>,
+): StartPromptRunResult {
+  const input = args.input as {
+    prompt_id: string;
+    session_id: string;
+    user_message: string;
+  };
+  if (connectionWidget(store).status !== "connected") {
+    throw new Error("LangDock is not connected");
+  }
+  findSession(store, input.prompt_id, input.session_id);
+  return startWebStream(store, input.prompt_id, input.session_id, input.user_message);
+}
+
+function webStopPromptRun(store: WebStore, args: Record<string, unknown>): void {
+  const input = args.input as { prompt_id: string; session_id: string; run_id: string };
+  const run = activeWebRuns.get(input.run_id);
+  if (!run || run.sessionId !== input.session_id || run.promptId !== input.prompt_id) {
+    throw new Error("run not found");
+  }
+  run.aborted = true;
+  clearRunTimeouts(run);
+  const session = findSession(store, input.prompt_id, input.session_id);
+  session.stopped = true;
+  session.updated_at = nowIso();
+  session.transcript.push({ type: "meta", event: "stopped" });
+  saveStore(store);
+  emitPromptRunEvent(PROMPT_RUN_EVENTS.stopped, {
+    session_id: input.session_id,
+    run_id: input.run_id,
+  });
+  activeWebRuns.delete(input.run_id);
 }
 
 export async function webInvoke<T>(
@@ -558,6 +832,40 @@ export async function webInvoke<T>(
       const summary = appendPromptVersion(store, promptId, version.content);
       saveStore(store);
       return summary as T;
+    }
+
+    case "start_prompt_run":
+      return webStartPromptRun(store, args) as T;
+
+    case "send_prompt_message":
+      return webSendPromptMessage(store, args) as T;
+
+    case "stop_prompt_run":
+      webStopPromptRun(store, args);
+      return undefined as T;
+
+    case "list_prompt_sessions": {
+      const promptId = args.promptId as string;
+      findPrompt(store, promptId);
+      return store.sessions
+        .filter((s) => s.prompt_id === promptId)
+        .map(toSessionSummary)
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at)) as T;
+    }
+
+    case "get_session_transcript": {
+      const promptId = args.promptId as string;
+      const sessionId = args.sessionId as string;
+      return [...findSession(store, promptId, sessionId).transcript] as T;
+    }
+
+    case "delete_prompt_session": {
+      const promptId = args.promptId as string;
+      const sessionId = args.sessionId as string;
+      findSession(store, promptId, sessionId);
+      store.sessions = store.sessions.filter((s) => s.id !== sessionId);
+      saveStore(store);
+      return undefined as T;
     }
 
     default:

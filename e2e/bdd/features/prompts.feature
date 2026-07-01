@@ -44,3 +44,34 @@ Feature: Prompt library CRUD, folders, tags, favorites
   Scenario: Diff and restore as new head
     When the prompt integration test "prompt_15_diff_and_restore" runs
     Then the integration test passes
+
+  # PROMPT-04 — Run blocked when LangDock degraded (domain; UI copy in PromptRunPanel)
+  Scenario: Prompt run blocked when connection is degraded
+    When the prompt integration test "prompt_04_run_blocked_when_not_connected" runs
+    Then the integration test passes
+
+  # PROMPT-03 — Stream run, session persistence, multi-turn
+  Scenario: User streams a prompt run with multi-turn session persistence
+    When the prompt integration test "prompt_03_session_and_transcript_persisted" runs
+    Then the integration test passes
+    When the prompt integration test "prompt_03_stream_completion_against_mock" runs
+    Then the integration test passes
+
+  # PROMPT-12 — Stop streaming run
+  Scenario: User stops an in-progress streaming run
+    When the prompt integration test "prompt_12_stop_marks_stopped_and_retains_partial" runs
+    Then the integration test passes
+
+  # PROMPT-14 — Variables at run
+  Scenario: Variables modal blocks run until values are provided
+    When the prompt integration test "prompt_14_variables_block_empty_and_substitute" runs
+    Then the integration test passes
+
+  Scenario: User may continue with empty variable values
+    When the prompt integration test "prompt_14_allow_empty_variables" runs
+    Then the integration test passes
+
+  # PROMPT-16 — Delete session
+  Scenario: User deletes a completed prompt session
+    When the prompt integration test "prompt_16_delete_session_removes_row_and_file" runs
+    Then the integration test passes

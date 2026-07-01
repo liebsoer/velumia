@@ -63,3 +63,65 @@ export interface PromptVersionSummary {
   created_at: string;
   is_head: boolean;
 }
+
+export interface SessionSummary {
+  id: string;
+  prompt_id: string;
+  created_at: string;
+  updated_at: string;
+  stopped: boolean;
+}
+
+export type TranscriptLine =
+  | { type: "run_config"; instructions: string; model: string }
+  | { type: "message"; role: string; content: string }
+  | { type: "meta"; event: string };
+
+export interface StartPromptRunInput {
+  prompt_id: string;
+  user_message?: string;
+  variables?: Record<string, string>;
+  allow_empty_variables?: boolean;
+}
+
+export interface StartPromptRunResult {
+  session_id: string;
+  run_id: string;
+}
+
+export interface SendPromptMessageInput {
+  prompt_id: string;
+  session_id: string;
+  user_message: string;
+}
+
+export interface StopPromptRunInput {
+  prompt_id: string;
+  session_id: string;
+  run_id: string;
+}
+
+export interface PromptRunChunkPayload {
+  session_id: string;
+  run_id: string;
+  chunk: string;
+  done: boolean;
+}
+
+export interface PromptRunSessionPayload {
+  session_id: string;
+  run_id: string;
+}
+
+export interface PromptRunErrorPayload {
+  session_id: string;
+  run_id: string;
+  message: string;
+}
+
+export const PROMPT_RUN_EVENTS = {
+  chunk: "prompt-run-chunk",
+  done: "prompt-run-done",
+  error: "prompt-run-error",
+  stopped: "prompt-run-stopped",
+} as const;
