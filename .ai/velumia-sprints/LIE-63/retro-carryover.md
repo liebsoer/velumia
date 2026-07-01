@@ -1,16 +1,16 @@
-# Retro carry-over — LIE-63
+# Retro carry-over — LIE-63 (next sprint Planning)
 
-**Date:** 2026-06-30  
-**Source retro:** `.ai/velumia-sprints/LIE-61/retro.md`  
-**Reviewed by:** SM, PO, dev subagents
+**Date:** 2026-07-01  
+**Source retro:** `.ai/velumia-sprints/LIE-62/retro.md`  
+**Reviewed by:** SM (agent)
 
 ## Actions due this sprint
 
 | Action (from source retro) | Owner | Integration decision | Reflected in | Status |
 |----------------------------|-------|----------------------|--------------|--------|
-| Move LIE-61 to Done; unblock LIE-63 | Stakeholder | LIE-61 Done 2026-06-30; LIE-63 planning proceeds | Linear | integrated |
-| Push `velumia-pm` PROMPT scenarios if not on remote | Dev | Author PROMPT-03–16 in velumia-pm early; push submodule with BDD subtask 1 | Implementation Spec subtask 1 | integrated |
-| Open sprint with branch + PR even for solo dogfood | SM | Feature branch `lie-63-*` before first implementation commit; PR with LIE-63 | Implementation Spec subtask 14 (DevOps) | integrated |
+| Document `PROMPT_UI_TESTS` vitest pattern in `velumia-dev-verify` | DevOps / BDD | Integrated in `velumia-dev-verify/SKILL.md` § UI scenario vitest | `velumia-dev-verify/SKILL.md` | integrated |
+| Permanent delete / auto-purge | PO | Remains deferred — no sprint unless stakeholder requests | — | deferred |
+| `createAgentRunApi()` for LIE-65 | Frontend | Carried from LIE-63 retro; implement when agents slice starts | Implementation Spec LIE-65 | deferred |
 
 ## Stakeholder escalations
 
@@ -18,5 +18,5 @@ None.
 
 ## Sign-off
 
-**All due actions integrated or stakeholder-closed:** yes  
-**Planning may proceed to sprint PRD:** yes (completed retroactively with Implementation Spec)
+**All due actions integrated or stakeholder-closed:** yes (one open tooling doc action for next kickoff)  
+**Planning may proceed to sprint PRD:** yes (after tooling doc or explicit defer at kickoff)
