@@ -22,6 +22,8 @@ const UNFILED_NODE_ID = "unfiled";
 
 const props = defineProps<{ startCreate?: boolean }>();
 
+const emit = defineEmits<{ openSettings: [] }>();
+
 const allPrompts = ref<PromptSummary[]>([]);
 const folders = ref<PromptFolder[]>([]);
 const tags = ref<TagSummary[]>([]);
@@ -712,6 +714,7 @@ defineExpose({ refresh });
           @open-move="openMoveModal"
           @open-delete="openDeleteConfirm"
           @favorite-toggle="toggleFavorite"
+          @open-settings="emit('openSettings')"
         />
 
         <div v-else-if="viewMode === 'folder'" class="folder-overview" data-testid="folder-overview">

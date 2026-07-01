@@ -97,6 +97,7 @@ onMounted(init);
       v-else-if="view === 'prompts'"
       ref="promptsRef"
       :start-create="startPromptCreate"
+      @open-settings="openSettings"
     />
     <div v-else class="settings-wrap">
       <button type="button" class="back" @click="backToDashboard">← Dashboard</button>

@@ -1,5 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import { webInvoke } from "./web-api";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { webInvoke, subscribePromptRunEvents } from "./web-api";
 
 export type {
   ConnectionWidgetState,
@@ -11,8 +12,18 @@ export type {
   PromptFolder,
   PromptSummary,
   PromptVersionSummary,
+  PromptRunChunkPayload,
+  PromptRunErrorPayload,
+  PromptRunSessionPayload,
+  SendPromptMessageInput,
+  SessionSummary,
+  StartPromptRunInput,
+  StartPromptRunResult,
+  StopPromptRunInput,
   TagSummary,
+  TranscriptLine,
 } from "./ipc-types";
+export { PROMPT_RUN_EVENTS } from "./ipc-types";
 import type {
   ConnectionWidgetState,
   LangdockProfile,
@@ -23,7 +34,13 @@ import type {
   PromptFolder,
   PromptSummary,
   PromptVersionSummary,
+  SendPromptMessageInput,
+  SessionSummary,
+  StartPromptRunInput,
+  StartPromptRunResult,
+  StopPromptRunInput,
   TagSummary,
+  TranscriptLine,
 } from "./ipc-types";
 
 function hasTauriBridge(): boolean {
@@ -109,7 +126,37 @@ export const api = {
     ipc<string>("get_prompt_version_content", { versionId }),
   restorePromptVersion: (promptId: string, versionId: string) =>
     ipc<PromptVersionSummary>("restore_prompt_version", { promptId, versionId }),
+  startPromptRun: (input: StartPromptRunInput) =>
+    ipc<StartPromptRunResult>("start_prompt_run", { input }),
+  sendPromptMessage: (input: SendPromptMessageInput) =>
+    ipc<StartPromptRunResult>("send_prompt_message", { input }),
+  stopPromptRun: (input: StopPromptRunInput) =>
+    ipc<void>("stop_prompt_run", { input }),
+  listPromptSessions: (promptId: string) =>
+    ipc<SessionSummary[]>("list_prompt_sessions", { promptId }),
+  getSessionTranscript: (promptId: string, sessionId: string) =>
+    ipc<TranscriptLine[]>("get_session_transcript", { promptId, sessionId }),
+  deletePromptSession: (promptId: string, sessionId: string) =>
+    ipc<void>("delete_prompt_session", { promptId, sessionId }),
 };
+
+export function onPromptRunEvent<T>(
+  event: string,
+  handler: (payload: T) => void,
+): () => void {
+  if (isTauri() && hasTauriBridge()) {
+    let unlisten: UnlistenFn | undefined;
+    void listen<T>(event, (e) => handler(e.payload)).then((fn) => {
+      unlisten = fn;
+    });
+    return () => {
+      void unlisten?.();
+    };
+  }
+  return subscribePromptRunEvents((ev, payload) => {
+    if (ev === event) handler(payload as T);
+  });
+}
 
 export function statusLabel(status: ConnectionWidgetState["status"]): string {
   switch (status) {
